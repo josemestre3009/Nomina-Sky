@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Editar Reporte — Actividades Sky{% endblock %}
+{% block page_heading %}Editar Reporte{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil-fill"></i>
+                    Reporte de {{ reporte.empleado.nombre }} — {{ reporte.fecha|fecha }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Info del reporte -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <small class="text-muted">Empleado</small>
+                        <p class="fw-bold mb-0">{{ reporte.empleado.nombre }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Cédula</small>
+                        <p class="fw-bold mb-0">{{ reporte.empleado.cedula }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Valor Original</small>
+                        <p class="fw-bold mb-0">{{ reporte.valor_dia_original|moneda }}</p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <form method="POST" action="{{ url_for('reportes.editar', id=reporte.id) }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.actividad.label.text }}</label>
+                        {{ form.actividad(class="form-control") }}
+                        {% for error in form.actividad.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.valor_dia_aplicado.label.text }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.valor_dia_aplicado(class="form-control") }}
+                                <span class="input-group-text">COP</span>
+                            </div>
+                            {% for error in form.valor_dia_aplicado.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                            <small class="text-muted">
+                                Valor por defecto: {{ reporte.empleado.valor_dia_defecto|moneda }}
+                            </small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.estado_pago.label.text }}</label>
+                            {{ form.estado_pago(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('reportes.lista') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

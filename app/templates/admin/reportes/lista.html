@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Reportes — Actividades Sky{% endblock %}
+{% block page_heading %}Reportes Diarios{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Gestión de Reportes</h4>
+        <p class="text-muted mb-0">{{ reportes.total }} reporte(s)</p>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card glass-card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Cédula</label>
+                {{ form.cedula(class="form-control", placeholder="Cédula") }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Nombre</label>
+                {{ form.nombre(class="form-control", placeholder="Nombre") }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Desde</label>
+                {{ form.fecha_inicio(class="form-control", type="date") }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Hasta</label>
+                {{ form.fecha_fin(class="form-control", type="date") }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Estado</label>
+                {{ form.estado_pago(class="form-select") }}
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-filter"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de reportes -->
+<div class="card glass-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Empleado</th>
+                        <th>Cédula</th>
+                        <th>Actividad</th>
+                        <th>Valor Día</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reporte in reportes.items %}
+                    <tr>
+                        <td>{{ reporte.fecha|fecha }}</td>
+                        <td class="fw-semibold">{{ reporte.empleado.nombre }}</td>
+                        <td>{{ reporte.empleado.cedula }}</td>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 250px;" title="{{ reporte.actividad }}">
+                                {{ reporte.actividad }}
+                            </span>
+                        </td>
+                        <td>{{ reporte.valor_dia_aplicado|moneda }}</td>
+                        <td>{{ reporte.estado_pago|estado|safe }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('reportes.editar', id=reporte.id) }}"
+                                   class="btn btn-outline-primary" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('reportes.eliminar', id=reporte.id) }}"
+                                      class="d-inline form-delete">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-delete" title="Eliminar">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                            No se encontraron reportes.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Paginación -->
+{% if reportes.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if reportes.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ reportes.prev_num }}{% for key, val in request.args.items() if key != 'page' %}&{{ key }}={{ val }}{% endfor %}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        {% for page in reportes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page %}
+            <li class="page-item {% if page == reportes.page %}active{% endif %}">
+                <a class="page-link" href="?page={{ page }}{% for key, val in request.args.items() if key != 'page' %}&{{ key }}={{ val }}{% endfor %}">{{ page }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if reportes.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ reportes.next_num }}{% for key, val in request.args.items() if key != 'page' %}&{{ key }}={{ val }}{% endfor %}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

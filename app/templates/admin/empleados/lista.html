@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Empleados — Actividades Sky{% endblock %}
+{% block page_heading %}Empleados{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Gestión de Empleados</h4>
+        <p class="text-muted mb-0">{{ empleados.total }} empleado(s) encontrado(s)</p>
+    </div>
+    <a href="{{ url_for('admin.empleados_crear') }}" class="btn btn-primary">
+        <i class="bi bi-person-plus-fill"></i> Nuevo Empleado
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card glass-card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Buscar</label>
+                <input type="text" name="buscar" class="form-control"
+                       placeholder="Nombre o cédula..." value="{{ buscar }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if estado == 'activo' %}selected{% endif %}>Activo</option>
+                    <option value="inactivo" {% if estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                <a href="{{ url_for('admin.empleados_lista') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card glass-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Cédula</th>
+                        <th>Cargo</th>
+                        <th>Valor/Día</th>
+                        <th>Estado</th>
+                        <th>Ingreso</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in empleados.items %}
+                    <tr>
+                        <td class="fw-semibold">{{ emp.nombre }}</td>
+                        <td>{{ emp.cedula }}</td>
+                        <td>{{ emp.cargo }}</td>
+                        <td>{{ emp.valor_dia_defecto|moneda }}</td>
+                        <td>{{ emp.estado|estado|safe }}</td>
+                        <td>{{ emp.fecha_ingreso|fecha }}</td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-start">
+                                <a href="{{ url_for('admin.empleados_editar', id=emp.id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.empleados_eliminar', id=emp.id) }}"
+                                      class="d-inline" onsubmit="return confirm('¿Está seguro de eliminar a este empleado y todos sus registros (reportes, bonos)? Esta acción es irreversible.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                            No se encontraron empleados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Paginación -->
+{% if empleados.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if empleados.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ empleados.prev_num }}&buscar={{ buscar }}&estado={{ estado }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        {% for page in empleados.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page %}
+            <li class="page-item {% if page == empleados.page %}active{% endif %}">
+                <a class="page-link" href="?page={{ page }}&buscar={{ buscar }}&estado={{ estado }}">{{ page }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if empleados.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ empleados.next_num }}&buscar={{ buscar }}&estado={{ estado }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

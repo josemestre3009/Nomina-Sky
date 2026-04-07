@@ -1,0 +1,897 @@
+{% extends "base.html" %}
+{% block title %}Calendario de Gestión — Actividades Sky{% endblock %}
+{% block page_heading %}Gestión de Reportes y Ausencias{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Panel izquierdo: Selector + Calendario -->
+    <div class="col-lg-8">
+        <div class="card glass-card mb-3">
+            <div class="card-body">
+                <div class="row align-items-end g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Empleado</label>
+                        <select id="empleado-select" class="form-select">
+                            <option value="todos">Todos los Empleados (Masivo)</option>
+                            {% for emp in empleados %}
+                            <option value="{{ emp.id }}" data-valor="{{ emp.valor_dia_defecto }}" {% if empleado_actual
+                                and emp.id==empleado_actual.id %}selected{% endif %}>
+                                {{ emp.nombre }} ({{ emp.cedula }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" id="btn-prev-mes">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <h5 class="mb-0 fw-bold text-center flex-grow-1" id="titulo-mes"></h5>
+                            <button class="btn btn-outline-secondary btn-sm" id="btn-next-mes">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <span class="badge bg-primary" id="badge-dias">0 días registrados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendario -->
+        <div class="card glass-card">
+            <div class="card-body p-3">
+                <div class="calendario-grid">
+                    <div class="cal-header">Lun</div>
+                    <div class="cal-header">Mar</div>
+                    <div class="cal-header">Mié</div>
+                    <div class="cal-header">Jue</div>
+                    <div class="cal-header">Vie</div>
+                    <div class="cal-header cal-weekend">Sáb</div>
+                    <div class="cal-header cal-weekend">Dom</div>
+                </div>
+                <div class="calendario-grid" id="calendario-body">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 px-3 pb-3">
+                <div class="d-flex gap-3 align-items-center flex-wrap" style="font-size: 0.8rem;">
+                    <span><span class="cal-legend cal-legend-revisado"></span> Revisado</span>
+                    <span><span class="cal-legend cal-legend-pendiente"></span> Pendiente</span>
+                    <span><span class="cal-legend cal-legend-ausente"></span> Ausente / No Laboró</span>
+                    <span><span class="cal-legend cal-legend-empty"></span> Sin registro</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel derecho: Detalle del día seleccionado -->
+    <div class="col-lg-4">
+        <div class="card glass-card" id="panel-detalle">
+            <div class="card-header">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-calendar-event"></i>
+                    <span id="detalle-titulo">Seleccione un día</span>
+                </h6>
+            </div>
+            <div class="card-body" id="detalle-body">
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-hand-index-thumb" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                    <p class="mt-2">Haga clic en un día del calendario para ver o registrar la actividad.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen del mes -->
+        <div class="card glass-card mt-3" id="resumen-mes-card">
+            <div class="card-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-bar-chart-fill"></i> Resumen del Mes</h6>
+            </div>
+            <div class="card-body">
+                <!-- Filtros del resumen -->
+                <div class="btn-group w-100 mb-3" role="group">
+                    <input type="radio" class="btn-check" name="resumen-rango" id="rango-mes" autocomplete="off" checked
+                        onclick="setRangoResumen('mes')">
+                    <label class="btn btn-outline-primary btn-sm" for="rango-mes">Mes</label>
+
+                    <input type="radio" class="btn-check" name="resumen-rango" id="rango-q1" autocomplete="off"
+                        onclick="setRangoResumen('q1')">
+                    <label class="btn btn-outline-primary btn-sm" for="rango-q1">1-15</label>
+
+                    <input type="radio" class="btn-check" name="resumen-rango" id="rango-q2" autocomplete="off"
+                        onclick="setRangoResumen('q2')">
+                    <label class="btn btn-outline-primary btn-sm" for="rango-q2">16-Fin</label>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Días reportados</span>
+                    <span class="fw-bold" id="resumen-dias">0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Revisados</span>
+                    <span class="fw-bold text-success" id="resumen-revisados">0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Pendientes</span>
+                    <span class="fw-bold text-warning" id="resumen-pendientes">0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Ausencias marcadas</span>
+                    <span class="fw-bold text-danger" id="resumen-ausencias">0</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold">Total mes (días)</span>
+                    <span class="fw-bold text-primary" id="resumen-total">$0 COP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Masivo -->
+<div class="modal fade" id="masivoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold" id="masivoModalLabel">Registro Masivo</h5>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success fw-bold shadow-sm" id="btn-save-all-masivo" onclick="guardarTodoMasivo()">
+                        <i class="bi bi-check-all me-1"></i> Guardar Todos los Cambios
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+            </div>
+            <div id="masivo-loader" class="position-absolute w-100 h-100 d-none flex-column align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 1055; top: 0; left: 0; border-radius: 0.3rem;">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+                <span class="mt-3 fw-bold text-primary fs-5">Guardando cambios...</span>
+            </div>
+            <div class="modal-body bg-light" id="masivoModalBody" style="padding: 1.5rem; min-height: 200px;">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendario-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+
+    .cal-header {
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        padding: 8px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .cal-weekend {
+        color: var(--text-light);
+    }
+
+    .cal-day {
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        border: 2px solid transparent;
+        min-height: 52px;
+        background: transparent;
+    }
+
+    .cal-day:hover {
+        background: var(--primary-soft);
+    }
+
+    .cal-day.empty {
+        cursor: default;
+        opacity: 0;
+    }
+
+    .cal-day.today {
+        border-color: var(--primary);
+    }
+
+    .cal-day.has-report {
+        cursor: pointer;
+    }
+
+    .cal-day.has-report.revisado {
+        background: var(--success-soft);
+        color: #166534;
+    }
+
+    .cal-day.has-report.pendiente {
+        background: var(--warning-soft);
+        color: #92400E;
+    }
+
+    .cal-day.has-report.ausente {
+        background: var(--danger-soft);
+        color: #991B1B;
+    }
+
+    .cal-day.selected {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(27, 37, 89, 0.12);
+    }
+
+    .cal-day .cal-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        position: absolute;
+        bottom: 6px;
+    }
+
+    .cal-dot.revisado {
+        background: var(--success);
+    }
+
+    .cal-dot.pendiente {
+        background: var(--warning);
+    }
+
+    .cal-dot.ausente {
+        background: var(--danger);
+    }
+
+    .cal-legend {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        margin-right: 4px;
+        vertical-align: middle;
+    }
+
+    .cal-legend-revisado {
+        background: var(--success-soft);
+        border: 1px solid #BBF7D0;
+    }
+
+    .cal-legend-pendiente {
+        background: var(--warning-soft);
+        border: 1px solid #FDE68A;
+    }
+
+    .cal-legend-ausente {
+        background: var(--danger-soft);
+        border: 1px solid #FECACA;
+    }
+
+    .cal-legend-empty {
+        background: var(--bg);
+        border: 1px solid var(--border);
+    }
+
+    /* Panel detalle */
+    #detalle-body .detalle-form .form-label {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .estado-toggle {
+        display: flex;
+        gap: 6px;
+    }
+
+    .estado-toggle .btn {
+        flex: 1;
+        font-size: 0.75rem;
+        padding: 0.4rem;
+        white-space: nowrap;
+    }
+
+    .estado-toggle .btn.active-estado {
+        box-shadow: 0 0 0 2px var(--primary);
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        var mesActual = {{ mes }};
+        var anioActual = {{ anio }};
+        var empleadoId = document.getElementById('empleado-select').value;
+        var reportesMes = {};
+        var diaSeleccionado = null;
+        var rangoResumen = 'mes';
+        var csrfToken = '{{ csrf_token() }}';
+
+        var todosLosEmpleadosData = [
+            {% for emp in empleados %}
+            { id: {{ emp.id }}, nombre: "{{ emp.nombre }}", valor: {{ emp.valor_dia_defecto }} }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+    var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    cargarReportes();
+
+    document.getElementById('empleado-select').addEventListener('change', function () {
+        empleadoId = this.value;
+        diaSeleccionado = null;
+        limpiarDetalle();
+
+        if (empleadoId === 'todos') {
+            document.getElementById('resumen-mes-card').style.display = 'none';
+        } else {
+            document.getElementById('resumen-mes-card').style.display = 'block';
+        }
+
+        cargarReportes();
+    });
+
+    document.getElementById('btn-prev-mes').addEventListener('click', function () {
+        mesActual--;
+        if (mesActual < 1) { mesActual = 12; anioActual--; }
+        diaSeleccionado = null;
+        limpiarDetalle();
+        cargarReportes();
+    });
+
+    document.getElementById('btn-next-mes').addEventListener('click', function () {
+        mesActual++;
+        if (mesActual > 12) { mesActual = 1; anioActual++; }
+        diaSeleccionado = null;
+        limpiarDetalle();
+        cargarReportes();
+    });
+
+    function cargarReportes() {
+        document.getElementById('titulo-mes').textContent = meses[mesActual - 1] + ' ' + anioActual;
+
+        var url = (empleadoId === 'todos')
+            ? '/admin/reportes/api/reportes/todos/' + anioActual + '/' + mesActual
+            : '/admin/reportes/api/reportes/' + empleadoId + '/' + anioActual + '/' + mesActual;
+
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                reportesMes = {};
+                data.forEach(function (r) {
+                    if (!reportesMes[r.dia]) reportesMes[r.dia] = [];
+                    reportesMes[r.dia].push(r);
+                });
+                renderCalendario();
+                actualizarResumen();
+            });
+    }
+
+    function renderCalendario() {
+        var container = document.getElementById('calendario-body');
+        container.innerHTML = '';
+
+        var primerDia = new Date(anioActual, mesActual - 1, 1);
+        var ultimoDia = new Date(anioActual, mesActual, 0).getDate();
+        var diaSemanaInicio = primerDia.getDay();
+        diaSemanaInicio = diaSemanaInicio === 0 ? 6 : diaSemanaInicio - 1;
+
+        var hoy = new Date();
+
+        for (var i = 0; i < diaSemanaInicio; i++) {
+            var emptyDiv = document.createElement('div');
+            emptyDiv.className = 'cal-day empty';
+            container.appendChild(emptyDiv);
+        }
+
+        for (var d = 1; d <= ultimoDia; d++) {
+            var dayDiv = document.createElement('div');
+            dayDiv.className = 'cal-day';
+            dayDiv.textContent = d;
+            dayDiv.dataset.dia = d;
+
+            if (d === hoy.getDate() && mesActual === (hoy.getMonth() + 1) && anioActual === hoy.getFullYear()) {
+                dayDiv.classList.add('today');
+            }
+
+            if (reportesMes[d] && reportesMes[d].length > 0) {
+                var estadoRep;
+                if (empleadoId === 'todos') {
+                    var tienePendiente = reportesMes[d].some(function (r) { return r.estado_pago === 'pendiente'; });
+                    var todosRevisadosOAusentes = reportesMes[d].every(function (r) { return r.estado_pago === 'revisado' || r.estado_pago === 'ausente' || r.estado_pago === 'pagado'; });
+                    estadoRep = tienePendiente ? 'pendiente' : (todosRevisadosOAusentes ? 'revisado' : 'pendiente');
+                } else {
+                    estadoRep = reportesMes[d][0].estado_pago;
+                }
+
+                dayDiv.classList.add('has-report', estadoRep);
+                if (estadoRep === 'revisado') {
+                    dayDiv.classList.add('bg-success-subtle', 'text-success-emphasis', 'border-success-subtle');
+                    dayDiv.style.fontWeight = '600';
+                } else if (estadoRep === 'ausente') {
+                    dayDiv.classList.add('bg-danger-subtle', 'text-danger-emphasis', 'border-danger-subtle');
+                    dayDiv.style.fontWeight = '600';
+                } else if (estadoRep === 'pendiente') {
+                    dayDiv.classList.add('bg-warning-subtle', 'text-warning-emphasis', 'border-warning-subtle');
+                    dayDiv.style.fontWeight = '600';
+                }
+            }
+
+            if (d === diaSeleccionado) {
+                dayDiv.classList.add('selected');
+            }
+
+            dayDiv.addEventListener('click', function () {
+                var dia = parseInt(this.dataset.dia);
+                seleccionarDia(dia);
+            });
+
+            container.appendChild(dayDiv);
+        }
+    }
+
+    function seleccionarDia(dia) {
+        diaSeleccionado = dia;
+        document.querySelectorAll('.cal-day').forEach(function (el) { el.classList.remove('selected'); });
+        var dayEl = document.querySelector('.cal-day[data-dia="' + dia + '"]');
+        if (dayEl) dayEl.classList.add('selected');
+
+        var dateObj = new Date(anioActual, mesActual - 1, dia);
+        var opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        var fechaStr = dateObj.toLocaleDateString('es-ES', opciones);
+        fechaStr = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1); // Capitalizar
+
+        document.getElementById('detalle-titulo').textContent = fechaStr;
+        var body = document.getElementById('detalle-body');
+        var reportesArr = reportesMes[dia] || [];
+
+        if (empleadoId === 'todos') {
+            document.getElementById('detalle-titulo').textContent = fechaStr + ' (Vista Masiva)';
+            body.innerHTML = '<div class="text-center py-5">'
+                + '  <i class="bi bi-window-stack text-muted" style="font-size: 3rem; opacity:0.5;"></i>'
+                + '  <p class="mt-3 mb-4 fw-semibold text-secondary">El reporte masivo para este día se abrió en una ventana emergente.</p>'
+                + '  <button class="btn btn-primary px-4 fw-bold shadow-sm" onclick="new bootstrap.Modal(document.getElementById(\'masivoModal\')).show()">'
+                + '    <i class="bi bi-box-arrow-up-right me-1"></i> Reabrir Ventana Masiva'
+                + '  </button>'
+                + '</div>';
+
+            document.getElementById('masivoModalLabel').textContent = 'Registro Masivo: ' + fechaStr;
+
+            var html = '<table class="table bg-white border shadow-sm rounded align-middle" style="min-width: 800px;">'
+                + '<thead class="table-light"><tr>'
+                + '<th style="width:25%;">Empleado</th>'
+                + '<th style="width:40%;">Actividad / Estado</th>'
+                + '<th style="width:20%;">Valor Día</th>'
+                + '<th style="width:15%;">Cambiar Estado</th>'
+                + '</tr></thead><tbody>';
+
+            todosLosEmpleadosData.forEach(function (emp) {
+                var r = reportesArr.find(function (x) { return x.empleado_id == emp.id; });
+                var tieneReporte = !!r;
+                var valor = r ? r.valor_dia_aplicado : emp.valor;
+                var estado = r ? r.estado_pago : '';
+                var rId = r ? r.id : 'null';
+                var actividadTxt = r ? r.actividad : '';
+
+                var bgClass = '';
+                if (estado === 'revisado' || estado === 'ausente') bgClass = 'table-success';
+                else if (estado === 'pendiente') bgClass = 'table-warning';
+
+                html += '<tr id="env-masivo-' + emp.id + '" class="' + bgClass + '" style="transition: background-color 0.3s ease;">'
+                    + '  <td class="fw-bold fs-6">' + escapeHtml(emp.nombre) + '</td>'
+                    + '  <td>'
+                    + '<textarea class="form-control form-control-sm border-secondary shadow-none" id="masivo-actividad-' + emp.id + '" rows="2" placeholder="Describir actividad, justificación o permisos...">' + escapeHtml(actividadTxt) + '</textarea>'
+                    + '  </td>'
+                    + '  <td>'
+                    + '<div class="input-group input-group-sm">'
+                    + '<span class="input-group-text px-2 bg-secondary border-secondary text-white fw-bold">$</span>'
+                    + '<input type="number" class="form-control border-secondary shadow-none" id="masivo-valor-' + emp.id + '" value="' + valor + '" step="1000" min="0">'
+                    + '</div>'
+                    + '  </td>'
+                    + '  <td>'
+                    + '<select class="form-select form-select-sm border-secondary shadow-none" id="masivo-estado-' + emp.id + '" onchange="var st=this.value; var row=document.getElementById(\'env-masivo-' + emp.id + '\'); row.classList.remove(\'table-success\',\'table-warning\',\'table-danger\'); if(st===\'revisado\'||st===\'ausente\') row.classList.add(\'table-success\'); else if(st===\'pendiente\') row.classList.add(\'table-warning\'); if(st===\'ausente\') document.getElementById(\'masivo-valor-' + emp.id + '\').value=0; else if(document.getElementById(\'masivo-valor-' + emp.id + '\').value==0) document.getElementById(\'masivo-valor-' + emp.id + '\').value=' + emp.valor + ';">'
+                    + (!tieneReporte ? '<option value="" disabled selected>Seleccione...</option>' : '')
+                    + '<option value="revisado" ' + (estado === 'revisado' ? 'selected' : '') + '>Revisado</option>'
+                    + '<option value="pendiente" ' + (estado === 'pendiente' ? 'selected' : '') + '>Pendiente</option>'
+                    + '<option value="ausente" ' + (estado === 'ausente' ? 'selected' : '') + '>Ausente</option>'
+                    + '</select>'
+                    + '  </td></tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('masivoModalBody').innerHTML = html;
+
+            var modalEl = document.getElementById('masivoModal');
+            var masivoModal = bootstrap.Modal.getInstance(modalEl);
+            if (!masivoModal) masivoModal = new bootstrap.Modal(modalEl);
+            masivoModal.show();
+
+            return;
+        }
+
+        var reporte = reportesArr.length > 0 ? reportesArr[0] : null;
+
+        if (reporte) {
+            var valorDefecto = document.getElementById('empleado-select').selectedOptions[0].dataset.valor;
+            body.innerHTML = '<div class="detalle-form">'
+                + '<div class="mb-3">'
+                + '  <label class="form-label fw-bold">Actividad / Observación</label>'
+                + '  <textarea class="form-control" id="edit-actividad" rows="3">' + escapeHtml(reporte.actividad) + '</textarea>'
+                + '</div>'
+                + '<div class="mb-3">'
+                + '  <label class="form-label fw-bold">Valor del Día (COP)</label>'
+                + '  <div class="input-group">'
+                + '    <span class="input-group-text">$</span>'
+                + '    <input type="number" class="form-control" id="edit-valor" value="' + reporte.valor_dia_aplicado + '" min="0" step="1000">'
+                + '  </div>'
+                + '  <small class="text-muted">Planta: $' + Number(valorDefecto).toLocaleString('es-CO') + '</small>'
+                + '</div>'
+                + '<div class="mb-3">'
+                + '  <label class="form-label fw-bold">Estado</label>'
+                + '  <div class="estado-toggle">'
+                + '    <button class="btn btn-sm ' + (reporte.estado_pago === 'pendiente' ? 'btn-warning active-estado' : 'btn-outline-secondary') + '" data-estado="pendiente" onclick="setEstado(this)">Pendiente</button>'
+                + '    <button class="btn btn-sm ' + (reporte.estado_pago === 'revisado' ? 'btn-success active-estado' : 'btn-outline-secondary') + '" data-estado="revisado" onclick="setEstado(this)">Revisado</button>'
+                + '    <button class="btn btn-sm ' + (reporte.estado_pago === 'ausente' ? 'btn-danger active-estado' : 'btn-outline-secondary') + '" data-estado="ausente" onclick="setEstado(this)">Ausente</button>'
+                + '  </div>'
+                + '  <input type="hidden" id="edit-estado" value="' + reporte.estado_pago + '">'
+                + '</div>'
+                + '<div class="d-flex gap-2">'
+                + '  <button class="btn btn-primary flex-grow-1" onclick="guardarReporte(' + reporte.id + ')">'
+                + '    <i class="bi bi-check-circle"></i> Guardar'
+                + '  </button>'
+                + '  <button class="btn btn-outline-danger" onclick="eliminarReporte(' + reporte.id + ')">'
+                + '    <i class="bi bi-trash"></i>'
+                + '  </button>'
+                + '</div></div>';
+        } else {
+            // Mostrar opción para registrar ausencia
+            body.innerHTML = '<div class="text-center py-2">'
+                + '<div class="mb-4 text-muted">'
+                + '  <i class="bi bi-journal-x" style="font-size: 2rem;"></i>'
+                + '  <p class="mt-2 mb-0 fw-bold">Sin registros</p>'
+                + '  <small>El empleado no tiene reportes este día.</small>'
+                + '</div>'
+                + '<div class="detalle-form text-start p-3 badge bg-light text-dark w-100 border text-wrap lh-base">'
+                + '  <h6 class="fw-bold mb-3"><i class="bi bi-person-fill-slash"></i> Registrar Ausencia / Festivo</h6>'
+                + '  <div class="mb-3">'
+                + '    <label class="form-label fw-bold small">Motivo</label>'
+                + '    <textarea class="form-control" id="new-actividad" rows="2" placeholder="Ej: Festivo, Domingo, permiso..."></textarea>'
+                + '  </div>'
+                + '  <button class="btn btn-danger w-100 fw-bold" onclick="crearReporteAusente()">'
+                + '    <i class="bi bi-check2-square"></i> Marcar como Ausente ($0)'
+                + '  </button>'
+                + '</div></div>';
+        }
+    }
+
+    window.setRangoResumen = function (rango) {
+        rangoResumen = rango;
+        actualizarResumen();
+    };
+
+    function actualizarResumen() {
+        var revisados = 0, pendientes = 0, ausencias = 0, total = 0, dias = 0;
+
+        Object.values(reportesMes).forEach(function (rArray) {
+            rArray.forEach(function (r) {
+                if (rangoResumen === 'q1' && r.dia > 15) return;
+                if (rangoResumen === 'q2' && r.dia <= 15) return;
+
+                dias++;
+                if (r.estado_pago === 'revisado') revisados++;
+                else if (r.estado_pago === 'ausente') ausencias++;
+                else pendientes++;
+
+                total += r.valor_dia_aplicado;
+            });
+        });
+
+        document.getElementById('resumen-dias').textContent = dias;
+        document.getElementById('resumen-revisados').textContent = revisados;
+        document.getElementById('resumen-pendientes').textContent = pendientes;
+        document.getElementById('resumen-ausencias').textContent = ausencias;
+        document.getElementById('resumen-total').textContent = '$' + total.toLocaleString('es-CO') + ' COP';
+        document.getElementById('badge-dias').textContent = dias + ' días registrados';
+    }
+
+    function limpiarDetalle() {
+        document.getElementById('detalle-titulo').textContent = 'Seleccione un día';
+        document.getElementById('detalle-body').innerHTML = '<div class="text-center text-muted py-5">'
+            + '<i class="bi bi-hand-index-thumb" style="font-size: 2.5rem; opacity: 0.3;"></i>'
+            + '<p class="mt-2">Haga clic en un día del calendario para ver o registrar la actividad.</p></div>';
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
+    window.setEstado = function (btn) {
+        var estado = btn.dataset.estado;
+        document.getElementById('edit-estado').value = estado;
+        btn.parentElement.querySelectorAll('.btn').forEach(function (b) {
+            b.className = 'btn btn-sm btn-outline-secondary';
+        });
+        if (estado === 'pendiente') {
+            btn.className = 'btn btn-sm btn-warning active-estado';
+        } else if (estado === 'ausente') {
+            btn.className = 'btn btn-sm btn-danger active-estado';
+        } else {
+            btn.className = 'btn btn-sm btn-success active-estado';
+        }
+    };
+
+    window.guardarReporte = function (id) {
+        var data = {
+            actividad: document.getElementById('edit-actividad').value,
+            valor_dia_aplicado: parseFloat(document.getElementById('edit-valor').value),
+            estado_pago: document.getElementById('edit-estado').value
+        };
+
+        fetch('/admin/reportes/api/reporte/' + id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(data)
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.success) {
+                    Swal.fire({ icon: 'success', title: 'Guardado', text: 'Actualizado correctamente.', timer: 1500, showConfirmButton: false });
+                    cargarReportes();
+                    setTimeout(function () { seleccionarDia(diaSeleccionado); }, 500);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: res.error });
+                }
+            });
+    };
+
+    window.eliminarReporte = function (id) {
+        Swal.fire({
+            title: '¿Eliminar reporte?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#A0AEC0',
+            confirmButtonText: 'Sí, eliminar'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                fetch('/admin/reportes/api/reporte/' + id, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.success) {
+                            Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1200, showConfirmButton: false });
+                            diaSeleccionado = null;
+                            limpiarDetalle();
+                            cargarReportes();
+                        }
+                    });
+            }
+        });
+    };
+
+    window.crearReporteAusente = function () {
+        var text = document.getElementById('new-actividad').value;
+        if (!text) {
+            Swal.fire({ icon: 'warning', title: 'Falta motivo', text: 'Escriba un motivo (Ej: Domingo, Festivo)' });
+            return;
+        }
+
+        var fechaStr = anioActual + '-' + String(mesActual).padStart(2, '0') + '-' + String(diaSeleccionado).padStart(2, '0');
+
+        var data = {
+            empleado_id: empleadoId,
+            fecha: fechaStr,
+            actividad: text,
+            valor_dia_aplicado: 0,
+            estado_pago: 'ausente'
+        };
+
+        fetch('/admin/reportes/api/reporte/admin_crear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(data)
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.success) {
+                    Swal.fire({ icon: 'success', title: 'Marcado como Ausente', timer: 1500, showConfirmButton: false });
+                    cargarReportes();
+                    setTimeout(function () { seleccionarDia(diaSeleccionado); }, 500);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: res.error });
+                }
+            });
+    };
+
+    window.guardarReporteMasivo = function (empId, reporteId) {
+        var valor = parseFloat(document.getElementById('masivo-valor-' + empId).value);
+        var estado = document.getElementById('masivo-estado-' + empId).value;
+        var actividad = document.getElementById('masivo-actividad-' + empId).value.trim();
+
+        if (!estado) {
+            Swal.fire({ icon: 'warning', title: 'Espere', text: 'Debe seleccionar un estado primero.' });
+            return;
+        }
+
+        if (!actividad && estado === 'ausente') {
+            Swal.fire({ icon: 'warning', title: 'Falta motivo', text: 'Por favor, escriba la actividad o motivo de la ausencia.' });
+            return;
+        }
+
+        var btn = document.getElementById('btn-save-' + empId);
+        var icon = btn.innerHTML;
+
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+        btn.disabled = true;
+
+        var fechaStr = anioActual + '-' + String(mesActual).padStart(2, '0') + '-' + String(diaSeleccionado).padStart(2, '0');
+
+        var url, method, bodyData;
+        if (reporteId) {
+            url = '/admin/reportes/api/reporte/' + reporteId;
+            method = 'PUT';
+            bodyData = { valor_dia_aplicado: valor, estado_pago: estado, actividad: actividad };
+        } else {
+            url = '/admin/reportes/api/reporte/admin_crear';
+            method = 'POST';
+            bodyData = {
+                empleado_id: empId,
+                fecha: fechaStr,
+                valor_dia_aplicado: valor,
+                estado_pago: estado,
+                actividad: actividad
+            };
+        }
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(bodyData)
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                btn.innerHTML = '<i class="bi bi-check2"></i>';
+                btn.classList.replace('btn-primary', 'btn-success');
+                setTimeout(function () {
+                    btn.innerHTML = icon;
+                    btn.disabled = false;
+                    btn.classList.replace('btn-success', 'btn-primary');
+                }, 2000);
+
+                if (res.success) {
+                    var el = document.getElementById('env-masivo-' + empId);
+                    el.style.backgroundColor = '#dcfce7';
+                    setTimeout(function () { el.style.backgroundColor = 'white'; }, 1000);
+
+                    // Update data quietly to keep calendar colors synced
+                    fetch('/admin/reportes/api/reportes/todos/' + anioActual + '/' + mesActual)
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            reportesMes = {};
+                            data.forEach(function (r) {
+                                if (!reportesMes[r.dia]) reportesMes[r.dia] = [];
+                                reportesMes[r.dia].push(r);
+                            });
+                            renderCalendario();
+                            // Si acabamos de crearlo, forzamos recarga de la vista al clickear de nuevo para asignar el ID si quieren seguir editando
+                            if (!reporteId) {
+                                setTimeout(function () { seleccionarDia(diaSeleccionado); }, 50);
+                            }
+                        });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: res.error });
+                }
+            });
+    };
+
+    window.guardarTodoMasivo = function () {
+        var reportesParaGuardar = [];
+        var tieneErrorValidacion = false;
+        var fechaStr = anioActual + '-' + String(mesActual).padStart(2, '0') + '-' + String(diaSeleccionado).padStart(2, '0');
+
+        todosLosEmpleadosData.forEach(function (emp) {
+            var estado = document.getElementById('masivo-estado-' + emp.id).value;
+            if (!estado) return;
+
+            var valor = parseFloat(document.getElementById('masivo-valor-' + emp.id).value);
+            var actividad = document.getElementById('masivo-actividad-' + emp.id).value.trim();
+
+            if (estado === 'ausente' && actividad === '') {
+                tieneErrorValidacion = true;
+                document.getElementById('masivo-actividad-' + emp.id).style.border = '2px solid red';
+            } else {
+                document.getElementById('masivo-actividad-' + emp.id).style.border = '';
+            }
+
+            reportesParaGuardar.push({
+                empleado_id: emp.id,
+                actividad: actividad,
+                valor_dia_aplicado: valor,
+                estado_pago: estado
+            });
+        });
+
+        if (tieneErrorValidacion) {
+            Swal.fire({ icon: 'warning', title: 'Falta motivo', text: 'Por favor, llene el espacio de comentarios (actividad) para las personas marcadas como Ausente.' });
+            return;
+        }
+
+        if (reportesParaGuardar.length === 0) {
+            Swal.fire({ icon: 'info', title: 'Sin cambios', text: 'No hay reportes con estado seleccionado para guardar.' });
+            return;
+        }
+
+        var btnAll = document.getElementById('btn-save-all-masivo');
+        var loader = document.getElementById('masivo-loader');
+
+        btnAll.disabled = true;
+        loader.classList.remove('d-none');
+        loader.classList.add('d-flex');
+
+        fetch('/admin/reportes/api/reporte/bulk_update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                fecha: fechaStr,
+                reportes: reportesParaGuardar
+            })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                btnAll.disabled = false;
+                loader.classList.remove('d-flex');
+                loader.classList.add('d-none');
+
+                if (res.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: res.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    cargarReportes();
+                    var closeBtn = document.querySelector('#masivoModal .btn-close');
+                    if (closeBtn) closeBtn.click();
+                    diaSeleccionado = null;
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: res.error || 'No se pudieron guardar los cambios.' });
+                }
+            })
+            .catch(function (err) {
+                btnAll.disabled = false;
+                loader.classList.remove('d-flex');
+                loader.classList.add('d-none');
+                Swal.fire({ icon: 'error', title: 'Error de red', text: 'No se pudo conectar con el servidor.' });
+            });
+    };
+
+}) ();
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Bono — Actividades Sky{% endblock %}
+{% block page_heading %}Nuevo Bono{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gift-fill"></i> Asignar Nuevo Bono</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.bonos_crear') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.empleado_id.label.text }}</label>
+                        {{ form.empleado_id(class="form-select") }}
+                        {% for error in form.empleado_id.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.valor.label.text }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.valor(class="form-control") }}
+                                <span class="input-group-text">COP</span>
+                            </div>
+                            {% for error in form.valor.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.descripcion.label.text }}</label>
+                            {{ form.descripcion(class="form-control") }}
+                            {% for error in form.descripcion.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.fecha_inicio.label.text }}</label>
+                            {{ form.fecha_inicio(class="form-control", type="date") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.fecha_fin.label.text }}</label>
+                            {{ form.fecha_fin(class="form-control", type="date") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.bonos_lista') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Bono
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

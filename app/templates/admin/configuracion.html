@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Configuración — Actividades Sky{% endblock %}
+{% block page_heading %}Configuración{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Cambiar Credenciales -->
+        <div class="card glass-card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-lock-fill"></i> Cambiar Credenciales de Administrador</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i>
+                    Puede cambiar el usuario y/o contraseña del administrador.
+                    Debe ingresar su contraseña actual para confirmar los cambios.
+                </div>
+
+                <form method="POST" action="{{ url_for('admin.configuracion') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.username.label.text }}</label>
+                        {{ form.username(class="form-control") }}
+                        {% for error in form.username.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.password_actual.label.text }} <span class="text-danger">*</span></label>
+                        {{ form.password_actual(class="form-control") }}
+                        {% for error in form.password_actual.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.password_nueva.label.text }}</label>
+                            {{ form.password_nueva(class="form-control") }}
+                            <small class="text-muted">Dejar vacío si no desea cambiar la contraseña.</small>
+                            {% for error in form.password_nueva.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.password_confirmar.label.text }}</label>
+                            {{ form.password_confirmar(class="form-control") }}
+                            {% for error in form.password_confirmar.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info del sistema -->
+        <div class="card glass-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle-fill"></i> Información del Sistema</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <td class="fw-bold">Aplicación</td>
+                        <td>Actividades Sky v1.0</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Moneda</td>
+                        <td>COP (Pesos Colombianos)</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Formato de Fecha</td>
+                        <td>dd/mm/yyyy</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Base de Datos</td>
+                        <td>SQLite (desarrollo)</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Admin Actual</td>
+                        <td>{{ current_user.username }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Actividades Sky{% endblock %}
+{% block page_heading %}Dashboard General{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-primary">
+            <div class="stat-card-body">
+                <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                <div class="stat-info">
+                    <p>Empleados Activos</p>
+                    <h3>{{ stats.empleados_activos }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-warning">
+            <div class="stat-card-body">
+                <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+                <div class="stat-info">
+                    <p>Reportes Pendientes</p>
+                    <h3>{{ stats.pendientes }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-danger">
+            <div class="stat-card-body">
+                <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+                <div class="stat-info">
+                    <p>Pagos del Mes (COP)</p>
+                    <h3>{{ stats.total_pagado|moneda }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-success">
+            <div class="stat-card-body">
+                <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+                <div class="stat-info">
+                    <p>Total por Pagar</p>
+                    <h3>{{ stats.total_pendiente|moneda }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row g-3 mb-4">
+    <!-- Reportes Recientes -->
+    <div class="col-lg-8">
+        <div class="card glass-card recent-reports-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">Reportes Diarios Recientes</h6>
+                <a href="{{ url_for('reportes.lista') }}" class="btn btn-sm btn-outline-primary">Ver todo</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Fecha</th>
+                                <th>Actividad</th>
+                                <th>Valor Día</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in recent_reports %}
+                            <tr>
+                                <td>
+                                    <div class="emp-name">
+                                        <span class="emp-avatar">{{ r.empleado.nombre[:2]|upper }}</span>
+                                        <span class="fw-semibold" style="color: var(--text-dark);">{{ r.empleado.nombre }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ r.fecha|fecha }}</td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 180px;" title="{{ r.actividad }}">
+                                        {{ r.actividad }}
+                                    </span>
+                                </td>
+                                <td class="fw-semibold" style="color: var(--text-dark);">{{ r.valor_dia_aplicado|moneda }}</td>
+                                <td>
+                                    <span class="status-dot {{ r.estado_pago }}" title="{{ r.estado_pago|title }}"></span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    Sin reportes recientes.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-lg-4">
+        <!-- Gráfico -->
+        <div class="card glass-card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0 fw-bold">Volumen de Reportes</h6>
+                <small class="text-muted">Actividad últimos 7 días</small>
+            </div>
+            <div class="card-body">
+                <canvas id="chartReportes" height="160"></canvas>
+            </div>
+        </div>
+
+        <!-- Eficiencia -->
+        <div class="card glass-card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold" style="color: var(--text-dark);">Reportes Hoy</span>
+                    <span class="fw-bold" style="color: var(--primary);">{{ stats.reportes_hoy }}</span>
+                </div>
+                <div class="efficiency-bar">
+                    <div class="efficiency-bar-fill" style="width: {{ [stats.reportes_hoy * 10, 100]|min }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Empleados -->
+        <div class="card glass-card">
+            <div class="card-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy-fill text-warning"></i> Top Empleados</h6>
+            </div>
+            <div class="card-body pt-0">
+                {% if stats.top_empleados %}
+                <ul class="list-group list-group-flush">
+                    {% for emp in stats.top_empleados %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span>
+                            <span class="badge bg-primary me-1">{{ loop.index }}</span>
+                            {{ emp.nombre }}
+                        </span>
+                        <span class="badge bg-success">{{ emp.total }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center mb-0 py-2">Sin datos este mes.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3">
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.empleados_crear') }}" class="quick-action-card">
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Nuevo Empleado</span>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.bonos_crear') }}" class="quick-action-card">
+            <i class="bi bi-gift-fill"></i>
+            <span>Asignar Bono</span>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('nomina.generar') }}" class="quick-action-card">
+            <i class="bi bi-calculator-fill"></i>
+            <span>Generar Nómina</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Gráfico de reportes de la semana
+    var reportesData = {{ stats.reportes_semana|tojson }};
+    var ctx = document.getElementById('chartReportes');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: reportesData.map(function(d) { return d.fecha; }),
+                datasets: [{
+                    label: 'Reportes',
+                    data: reportesData.map(function(d) { return d.cantidad; }),
+                    backgroundColor: '#1B2559',
+                    borderRadius: 6,
+                    barPercentage: 0.5,
+                    maxBarThickness: 24
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: { size: 11 },
+                            color: '#A0AEC0'
+                        },
+                        grid: { color: '#EDF2F7' }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: 11 },
+                            color: '#A0AEC0'
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

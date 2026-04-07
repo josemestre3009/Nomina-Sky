@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Reporte de Actividades — Actividades Sky{% endblock %}
+{% block body_class %}public-page{% endblock %}
+
+{% block public_content %}
+<div class="public-container">
+    <div class="report-card">
+        <div class="report-card-header">
+            <div class="brand-icon">
+                <i class="bi bi-cloud-sun-fill"></i>
+            </div>
+            <h1>Actividades <strong>Sky</strong></h1>
+            <p class="subtitle">Reporte de Actividades Diarias</p>
+        </div>
+
+        <div class="report-card-body">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert"
+                style="font-size: 0.85rem;">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" id="reporte-form" autocomplete="off">
+                {{ form.hidden_tag() }}
+
+                <!-- Cédula con búsqueda -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-person-badge-fill"></i> Número de Cédula
+                    </label>
+                    {{ form.cedula(class="form-control", id="input-cedula", maxlength="20") }}
+                    {% for error in form.cedula.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Info del empleado (aparece al encontrar) -->
+                <div id="empleado-info" class="empleado-info-card d-none">
+                    <div class="d-flex align-items-center">
+                        <div class="empleado-avatar">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div>
+                            <strong id="empleado-nombre">—</strong>
+                            <small class="d-block text-muted" id="empleado-cargo">—</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="campos-reporte" class="d-none">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-calendar-event"></i> Fecha del Reporte
+                        </label>
+                        {{ form.fecha(class="form-control", type="date") }}
+                        {% for error in form.fecha.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-journal-text"></i> Actividad Realizada
+                        </label>
+                        {{ form.actividad(class="form-control", rows="4") }}
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="form-text">Describa detalladamente lo que hizo hoy.</small>
+                            <small class="form-text" id="char-count">0 / 2000</small>
+                        </div>
+                        {% for error in form.actividad.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-submit btn-lg">
+                            <i class="bi bi-send-fill"></i> Enviar Reporte
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="report-card-footer">
+            <a href="{{ url_for('auth.login') }}" class="admin-link">
+                <i class="bi bi-shield-lock-fill"></i> Acceso Administrador
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var cedulaInput = document.getElementById('input-cedula');
+        var infoCard = document.getElementById('empleado-info');
+        var campos = document.getElementById('campos-reporte');
+        var charCount = document.getElementById('char-count');
+        var timeout = null;
+
+        // Búsqueda por cédula con debounce
+        cedulaInput.addEventListener('input', function () {
+            clearTimeout(timeout);
+            var cedula = this.value.replace(/\D/g, '');
+            this.value = cedula;
+
+            if (cedula.length >= 5) {
+                timeout = setTimeout(function () {
+                    fetch('/buscar-empleado/' + cedula)
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data.encontrado) {
+                                document.getElementById('empleado-nombre').textContent = data.nombre;
+                                document.getElementById('empleado-cargo').textContent = data.cargo;
+                                infoCard.classList.remove('d-none');
+                                campos.classList.remove('d-none');
+                            } else {
+                                infoCard.classList.add('d-none');
+                                campos.classList.add('d-none');
+                            }
+                        });
+                }, 400);
+            } else {
+                infoCard.classList.add('d-none');
+                campos.classList.add('d-none');
+            }
+        });
+
+        // Contador de caracteres
+        var actividadInput = document.querySelector('textarea[name="actividad"]');
+        if (actividadInput) {
+            actividadInput.addEventListener('input', function () {
+                charCount.textContent = this.value.length + ' / 2000';
+            });
+        }
+
+        // Si ya hay cédula (por validación fallida), disparar búsqueda
+        if (cedulaInput.value.length >= 5) {
+            cedulaInput.dispatchEvent(new Event('input'));
+        }
+    });
+</script>
+{% endblock %}

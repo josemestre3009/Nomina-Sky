@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Generar Nómina — Actividades Sky{% endblock %}
+{% block page_heading %}Generar Nómina{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calculator-fill"></i> Generar Nómina</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('nomina.generar') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-4">
+                        <!-- Selector de empleados -->
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Seleccionar Empleados</label>
+                            <div class="mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="btn-select-all">
+                                    Seleccionar Todos
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-deselect-all">
+                                    Deseleccionar
+                                </button>
+                            </div>
+                            <div class="row g-2 mt-2">
+                                {% for emp in empleados %}
+                                <div class="col-auto">
+                                    <label
+                                        class="emp-selection-card border rounded px-3 py-2 d-flex align-items-center m-0 shadow-sm"
+                                        style="cursor: pointer; transition: all 0.2s ease; background-color: white;"
+                                        for="emp-{{ emp.id }}">
+                                        <input class="form-check-input m-0 me-2 empleado-checkbox"
+                                            type="checkbox" name="empleado_ids" value="{{ emp.id }}"
+                                            id="emp-{{ emp.id }}"
+                                            style="cursor: pointer; box-shadow: none;" onchange="
+                                                   if(this.checked) {
+                                                       this.parentElement.classList.add('border-primary');
+                                                       this.parentElement.style.backgroundColor = '#E8EBF7';
+                                                   } else {
+                                                       this.parentElement.classList.remove('border-primary');
+                                                       this.parentElement.style.backgroundColor = 'white';
+                                                   }
+                                               ">
+                                        <span class="text-dark fw-semibold" style="font-size: 0.95rem;">{{ emp.nombre }}</span>
+                                    </label>
+                                </div>
+                                {% else %}
+                                <div class="col-12">
+                                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                                        <div>
+                                            No hay empleados activos para generar nómina.
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Rango de fechas -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Rango de Fechas</label>
+
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" name="fecha_inicio" class="form-control" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" name="fecha_fin" class="form-control" required>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-calculator-fill"></i> Generar Nómina
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('btn-select-all').addEventListener('click', function () {
+        document.querySelectorAll('.empleado-checkbox').forEach(cb => {
+            if (!cb.checked) {
+                cb.checked = true;
+                cb.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+    document.getElementById('btn-deselect-all').addEventListener('click', function () {
+        document.querySelectorAll('.empleado-checkbox').forEach(cb => {
+            if (cb.checked) {
+                cb.checked = false;
+                cb.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+</script>
+{% endblock %}

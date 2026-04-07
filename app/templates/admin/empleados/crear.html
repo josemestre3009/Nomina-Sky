@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Empleado — Actividades Sky{% endblock %}
+{% block page_heading %}Nuevo Empleado{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-plus-fill"></i> Registrar Nuevo Empleado</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.empleados_crear') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">{{ form.nombre.label.text }}</label>
+                            {{ form.nombre(class="form-control") }}
+                            {% for error in form.nombre.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.cedula.label.text }}</label>
+                            {{ form.cedula(class="form-control") }}
+                            {% for error in form.cedula.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.cargo.label.text }}</label>
+                            {{ form.cargo(class="form-control") }}
+                            {% for error in form.cargo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.valor_dia_defecto.label.text }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.valor_dia_defecto(class="form-control") }}
+                                <span class="input-group-text">COP</span>
+                            </div>
+                            {% for error in form.valor_dia_defecto.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.estado.label.text }}</label>
+                            {{ form.estado(class="form-select") }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.fecha_ingreso.label.text }}</label>
+                            {{ form.fecha_ingreso(class="form-control", type="date") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.empleados_lista') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar Empleado
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

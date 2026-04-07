@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Resumen de Nómina — Actividades Sky{% endblock %}
+{% block page_heading %}Resumen de Nómina{% endblock %}
+
+{% block content %}
+<!-- Header con acciones -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Resumen de Nómina</h4>
+        <p class="text-muted mb-0">
+            Período: {{ fecha_inicio|fecha }} — {{ fecha_fin|fecha }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('exportar.pdf') }}" class="btn btn-danger">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Exportar PDF
+        </a>
+        <a href="{{ url_for('exportar.excel') }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel-fill"></i> Exportar Excel
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="bi bi-printer-fill"></i> Imprimir
+        </button>
+        <a href="{{ url_for('nomina.generar') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Resúmenes por empleado -->
+{% for resumen in resumenes %}
+<div class="card glass-card mb-4 nomina-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">
+                <i class="bi bi-person-fill"></i> {{ resumen.empleado.nombre }}
+            </h5>
+            <small class="text-muted">
+                Cédula: {{ resumen.empleado.cedula }} | Cargo: {{ resumen.empleado.cargo }}
+            </small>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-primary fs-6">{{ resumen.dias_trabajados }} días</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Tabla de actividades SIN valores por día -->
+        {% if resumen.reportes %}
+        <div class="table-responsive mb-3">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">Fecha</th>
+                        <th>Actividad Realizada</th>
+                        <th style="width: 180px;" class="text-end">Valor Día</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in resumen.reportes %}
+                    <tr>
+                        <td>{{ r.fecha|fecha }}</td>
+                        <td>
+                            {% if r.estado_pago == 'ausente' %}
+                                No laboró - {{ r.actividad }}
+                            {% else %}
+                                {{ r.actividad }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold">{{ r.valor_dia_aplicado|moneda }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center">Sin reportes en este período.</p>
+        {% endif %}
+
+        <!-- Bonos -->
+        {% if resumen.bonos %}
+        <div class="mb-3">
+            <h6 class="fw-bold"><i class="bi bi-gift-fill text-warning"></i> Bonos</h6>
+            {% for bono in resumen.bonos %}
+            <div class="d-flex justify-content-between align-items-center py-1">
+                <span>{{ bono.descripcion }}</span>
+                <span class="fw-bold text-success">{{ bono.valor|moneda }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <hr>
+
+        <!-- TOTAL FINAL (SIN desglose por día) -->
+        <div class="d-flex justify-content-end">
+            <div class="total-box">
+                {% if resumen.bonos %}
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted me-4">Subtotal días:</span>
+                    <span>{{ resumen.total_dias|moneda }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted me-4">Bonos:</span>
+                    <span>{{ resumen.total_bonos|moneda }}</span>
+                </div>
+                <hr class="my-1">
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold fs-5 me-4">TOTAL A PAGAR:</span>
+                    <span class="fw-bold fs-5 text-success">{{ resumen.total_final|moneda }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Gran total -->
+{% set gran_total = resumenes|sum(attribute='total_final') %}
+<div class="card glass-card border-primary">
+    <div class="card-body text-center">
+        <h4 class="text-muted mb-2">Gran Total (Todos los empleados)</h4>
+        <h2 class="fw-bold text-primary">{{ gran_total|moneda }}</h2>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .sidebar, .admin-topbar, .btn, .d-flex.gap-2 { display: none !important; }
+        .admin-content { margin-left: 0 !important; }
+        .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+    }
+    .total-box {
+        background: var(--glass-bg, rgba(255,255,255,0.05));
+        padding: 12px 20px;
+        border-radius: 8px;
+        min-width: 300px;
+    }
+</style>
+{% endblock %}

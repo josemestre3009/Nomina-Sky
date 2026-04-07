@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Bonos — Actividades Sky{% endblock %}
+{% block page_heading %}Bonos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Gestión de Bonos</h4>
+        <p class="text-muted mb-0">{{ bonos.total }} bono(s)</p>
+    </div>
+    <a href="{{ url_for('admin.bonos_crear') }}" class="btn btn-primary">
+        <i class="bi bi-gift-fill"></i> Nuevo Bono
+    </a>
+</div>
+
+<div class="card glass-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Descripción</th>
+                        <th>Valor</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th>Creado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bono in bonos.items %}
+                    <tr>
+                        <td class="fw-semibold">{{ bono.empleado.nombre }}</td>
+                        <td>{{ bono.descripcion }}</td>
+                        <td class="fw-bold text-success">{{ bono.valor|moneda }}</td>
+                        <td>{{ bono.fecha_inicio|fecha if bono.fecha_inicio else '—' }}</td>
+                        <td>{{ bono.fecha_fin|fecha if bono.fecha_fin else '—' }}</td>
+                        <td>{{ bono.fecha_creacion|fecha_hora }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.bonos_eliminar', id=bono.id) }}"
+                                  class="d-inline form-delete">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-delete" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                            No hay bonos registrados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if bonos.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if bonos.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ bonos.prev_num }}"><i class="bi bi-chevron-left"></i></a>
+        </li>
+        {% endif %}
+        {% for page in bonos.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page %}
+            <li class="page-item {% if page == bonos.page %}active{% endif %}">
+                <a class="page-link" href="?page={{ page }}">{{ page }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if bonos.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ bonos.next_num }}"><i class="bi bi-chevron-right"></i></a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
