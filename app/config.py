@@ -12,17 +12,24 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     """Configuración base."""
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'clave-por-defecto-cambiar')
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        'DATABASE_URL',
-        'sqlite:///' + os.path.join(os.path.dirname(basedir), 'instance', 'nomina_sky.db')
-    )
+    
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("🔒 ERROR CRÍTICO: No hay 'SECRET_KEY' en las variables de entorno. Falta configurar Entorno en Easypanel o el archivo .env")
+
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    if not SQLALCHEMY_DATABASE_URI:
+        raise ValueError("💾 ERROR CRÍTICO: No hay 'DATABASE_URL' en las variables de entorno.")
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
 
-    # Credenciales admin por defecto (configurables desde .env)
-    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    # Credenciales admin, OBLIGATORIAS para arrancar
+    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+
+    if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+        raise ValueError("🛡️ ERROR CRÍTICO: Falta configurar 'ADMIN_USERNAME' o 'ADMIN_PASSWORD' en las variables de entorno.")
 
     # Paginación
     ITEMS_PER_PAGE = 15
