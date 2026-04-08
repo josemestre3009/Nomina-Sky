@@ -6,6 +6,7 @@ Incluye medidas de seguridad robustas.
 import os
 import secrets
 from flask import Flask, render_template, request, g
+from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import config_map
 from .extensions import db, login_manager, migrate, csrf, limiter
 
@@ -18,12 +19,19 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config_map.get(config_name, config_map['default']))
 
+    # ProxyFix: permite que Flask confíe en los headers del proxy de Easypanel/Nginx
+    # Necesario para que HTTPS, IPs y URLs funcionen correctamente detrás de un reverse proxy
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     # ─── Configuración de seguridad de sesión/cookies ───
+    # SESSION_COOKIE_SECURE se controla via variable de entorno COOKIE_SECURE=true
+    # (no automático por FLASK_ENV para evitar problemas con proxies que usan HTTP internamente)
+    _secure = os.environ.get('COOKIE_SECURE', 'false').lower() == 'true'
     app.config.setdefault('SESSION_COOKIE_HTTPONLY', True)
     app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
-    app.config.setdefault('SESSION_COOKIE_SECURE', os.environ.get('FLASK_ENV') == 'production')
+    app.config.setdefault('SESSION_COOKIE_SECURE', _secure)
     app.config.setdefault('REMEMBER_COOKIE_HTTPONLY', True)
-    app.config.setdefault('REMEMBER_COOKIE_SECURE', os.environ.get('FLASK_ENV') == 'production')
+    app.config.setdefault('REMEMBER_COOKIE_SECURE', _secure)
     app.config.setdefault('REMEMBER_COOKIE_DURATION', 0)
     app.config.setdefault('WTF_CSRF_TIME_LIMIT', 3600)  # CSRF tokens válidos 1 hora
     app.config.setdefault('MAX_CONTENT_LENGTH', 2 * 1024 * 1024)  # Máx 2MB uploads
