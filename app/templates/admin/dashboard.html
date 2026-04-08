@@ -182,7 +182,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     // Gráfico de reportes de la semana
     var reportesData = {{ stats.reportes_semana|tojson }};
     var ctx = document.getElementById('chartReportes');

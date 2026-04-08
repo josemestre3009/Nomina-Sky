@@ -307,7 +307,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     (function () {
         var mesActual = {{ mes }};
         var anioActual = {{ anio }};
@@ -544,7 +544,7 @@
                 + '    <button class="btn btn-sm ' + (reporte.estado_pago === 'revisado' ? 'btn-success active-estado' : 'btn-outline-secondary') + '" data-estado="revisado" onclick="setEstado(this)">Revisado</button>'
                 + '    <button class="btn btn-sm ' + (reporte.estado_pago === 'ausente' ? 'btn-danger active-estado' : 'btn-outline-secondary') + '" data-estado="ausente" onclick="setEstado(this)">Ausente</button>'
                 + '  </div>'
-                + '  <input type="hidden" id="edit-estado" value="' + reporte.estado_pago + '">'
+                + '  <input type="hidden" id="edit-estado" value="' + escapeHtml(reporte.estado_pago) + '">'
                 + '</div>'
                 + '<div class="d-flex gap-2">'
                 + '  <button class="btn btn-primary flex-grow-1" onclick="guardarReporte(' + reporte.id + ')">'

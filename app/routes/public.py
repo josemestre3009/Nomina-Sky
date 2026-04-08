@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app.models.empleado import Empleado
 from app.services.reporte_service import crear_reporte, ReporteError
 from app.forms.reporte_forms import ReportePublicoForm
+from app.extensions import limiter
 
 public_bp = Blueprint('public', __name__)
 
@@ -53,6 +54,7 @@ def confirmacion():
 
 
 @public_bp.route('/buscar-empleado/<cedula>')
+@limiter.limit('30/minute')
 def buscar_empleado(cedula):
     """API para buscar empleado por cédula (AJAX)."""
     empleado = Empleado.query.filter_by(cedula=cedula.strip()).first()

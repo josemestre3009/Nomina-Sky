@@ -4,9 +4,10 @@ Crea y configura la aplicación Flask con todos sus componentes.
 Incluye medidas de seguridad robustas.
 """
 import os
+import secrets
 from flask import Flask, render_template, request, g
 from .config import config_map
-from .extensions import db, login_manager, migrate, csrf
+from .extensions import db, login_manager, migrate, csrf, limiter
 
 
 def create_app(config_name=None):
@@ -20,7 +21,9 @@ def create_app(config_name=None):
     # ─── Configuración de seguridad de sesión/cookies ───
     app.config.setdefault('SESSION_COOKIE_HTTPONLY', True)
     app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config.setdefault('SESSION_COOKIE_SECURE', os.environ.get('FLASK_ENV') == 'production')
     app.config.setdefault('REMEMBER_COOKIE_HTTPONLY', True)
+    app.config.setdefault('REMEMBER_COOKIE_SECURE', os.environ.get('FLASK_ENV') == 'production')
     app.config.setdefault('REMEMBER_COOKIE_DURATION', 0)
     app.config.setdefault('WTF_CSRF_TIME_LIMIT', 3600)  # CSRF tokens válidos 1 hora
     app.config.setdefault('MAX_CONTENT_LENGTH', 2 * 1024 * 1024)  # Máx 2MB uploads
@@ -43,8 +46,13 @@ def create_app(config_name=None):
     # Registrar comandos CLI
     _register_cli_commands(app)
 
-    # Registrar headers de seguridad
+    # Registrar headers de seguridad y nonce CSP
     _register_security_headers(app)
+
+    # Context processor: nonce disponible en todos los templates
+    @app.context_processor
+    def inject_csp_nonce():
+        return {'csp_nonce': getattr(g, 'csp_nonce', '')}
 
     return app
 
@@ -55,6 +63,7 @@ def _init_extensions(app):
     login_manager.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     # Configurar login_manager
     login_manager.login_view = 'auth.login'
@@ -126,8 +135,16 @@ def _register_error_handlers(app):
 def _register_security_headers(app):
     """Aplica headers HTTP de seguridad a todas las respuestas."""
 
+    is_production = os.environ.get('FLASK_ENV') == 'production'
+
+    @app.before_request
+    def generate_csp_nonce():
+        g.csp_nonce = secrets.token_hex(16)
+
     @app.after_request
     def set_security_headers(response):
+        nonce = getattr(g, 'csp_nonce', '')
+
         # Prevenir clickjacking
         response.headers['X-Frame-Options'] = 'DENY'
         # Prevenir MIME sniffing
@@ -138,10 +155,13 @@ def _register_security_headers(app):
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         # Permisos de funcionalidades del navegador
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-        # Content-Security-Policy (permite CDNs necesarios)
+        # HSTS — solo en producción (requiere HTTPS)
+        if is_production:
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        # Content-Security-Policy con nonce por petición (elimina unsafe-inline de scripts)
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "img-src 'self' data:; "
