@@ -76,14 +76,14 @@
         <p class="text-muted text-center">Sin reportes en este período.</p>
         {% endif %}
 
-        <!-- Bonos -->
+        <!-- Bonos / Adicionales y Descuentos -->
         {% if resumen.bonos %}
         <div class="mb-3">
-            <h6 class="fw-bold"><i class="bi bi-gift-fill text-warning"></i> Bonos</h6>
+            <h6 class="fw-bold"><i class="bi bi-calculator text-warning"></i> Adicionales y Descuentos</h6>
             {% for bono in resumen.bonos %}
             <div class="d-flex justify-content-between align-items-center py-1">
                 <span>{{ bono.descripcion }}</span>
-                <span class="fw-bold text-success">{{ bono.valor|moneda }}</span>
+                <span class="fw-bold {% if bono.valor >= 0 %}text-success{% else %}text-danger{% endif %}">{{ bono.valor|moneda }}</span>
             </div>
             {% endfor %}
         </div>
@@ -94,13 +94,18 @@
         <!-- TOTAL FINAL (SIN desglose por día) -->
         <div class="d-flex justify-content-end">
             <div class="total-box">
+                <div class="text-end mb-3 d-print-none">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="abrirModalAjuste({{ resumen.empleado.id }}, '{{ resumen.empleado.nombre }}')">
+                        <i class="bi bi-plus-slash-minus"></i> Añadir Adicional / Descuento
+                    </button>
+                </div>
                 {% if resumen.bonos %}
                 <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted me-4">Subtotal días:</span>
                     <span>{{ resumen.total_dias|moneda }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted me-4">Bonos:</span>
+                    <span class="text-muted me-4">Adicionales / Desc.:</span>
                     <span>{{ resumen.total_bonos|moneda }}</span>
                 </div>
                 <hr class="my-1">
@@ -123,6 +128,135 @@
         <h2 class="fw-bold text-primary">{{ gran_total|moneda }}</h2>
     </div>
 </div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal Añadir Ajuste -->
+<div class="modal fade" id="modalAjuste" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Añadir Adicional / Descuento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3 text-muted">Ajuste para: <strong id="ajusteEmpNombre"></strong></p>
+                <form id="formAjuste">
+                    <input type="hidden" id="ajusteEmpId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo</label>
+                        <input type="text" class="form-control" id="ajusteMotivo" required placeholder="Ej: Horas extras, Préstamo...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Valor (COP)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="ajusteValor" required placeholder="Positivo (+), Negativo (-)">
+                        </div>
+                        <div class="form-text mt-2 mb-0">
+                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle me-1">+ Positivo</span> = Adicional (Ej: 50000)<br>
+                            <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle me-1 mt-1">- Negativo</span> = Descuento (Ej: -20000)
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarAjuste()">Guardar Ajuste</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce }}">
+    var modalAjuste = null;
+    var fechaFinNomina = '{{ fecha_fin.strftime("%Y-%m-%d") }}';
+    
+    document.addEventListener("DOMContentLoaded", function() {
+        modalAjuste = new bootstrap.Modal(document.getElementById('modalAjuste'));
+    });
+
+    function abrirModalAjuste(empId, empNombre) {
+        document.getElementById('ajusteEmpId').value = empId;
+        document.getElementById('ajusteEmpNombre').textContent = empNombre;
+        document.getElementById('ajusteMotivo').value = '';
+        document.getElementById('ajusteValor').value = '';
+        modalAjuste.show();
+    }
+
+    function guardarAjuste() {
+        var empId = document.getElementById('ajusteEmpId').value;
+        var motivo = document.getElementById('ajusteMotivo').value.trim();
+        var valor = document.getElementById('ajusteValor').value;
+
+        if (!motivo || !valor) {
+            Swal.fire({icon: 'warning', title: 'Campos incompletos', text: 'Por favor ingrese motivo y valor.'});
+            return;
+        }
+
+        var data = {
+            empleado_id: empId,
+            descripcion: motivo,
+            valor: valor,
+            fecha_fin: fechaFinNomina
+        };
+
+        fetch("{{ url_for('nomina.api_agregar_ajuste') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success) {
+                modalAjuste.hide();
+                Swal.fire({
+                    icon: 'success', 
+                    title: 'Guardado', 
+                    text: res.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Refrescar enviando los mismos datos desde la sesión para evitar confirmación del navegador
+                    var f = document.createElement('form');
+                    f.action = "{{ url_for('nomina.generar') }}";
+                    f.method = 'POST';
+                    f.style.display = 'none';
+                    
+                    {% for emp_id in session.get('nomina_empleado_ids', []) %}
+                    var i = document.createElement('input');
+                    i.type = 'hidden'; i.name = 'empleado_ids'; i.value = '{{ emp_id }}';
+                    f.appendChild(i);
+                    {% endfor %}
+                    
+                    var fIni = document.createElement('input');
+                    fIni.type = 'hidden'; fIni.name = 'fecha_inicio'; fIni.value = '{{ session.get("nomina_fecha_inicio") }}';
+                    f.appendChild(fIni);
+                    
+                    var fFin = document.createElement('input');
+                    fFin.type = 'hidden'; fFin.name = 'fecha_fin'; fFin.value = '{{ session.get("nomina_fecha_fin") }}';
+                    f.appendChild(fFin);
+                    
+                    var csrf = document.createElement('input');
+                    csrf.type = 'hidden'; csrf.name = 'csrf_token'; csrf.value = '{{ csrf_token() }}';
+                    f.appendChild(csrf);
+
+                    document.body.appendChild(f);
+                    f.submit();
+                });
+            } else {
+                Swal.fire({icon: 'error', title: 'Error', text: res.error});
+            }
+        }).catch(e => {
+            Swal.fire({icon: 'error', title: 'Error', text: 'Problema de conexión con el servidor.'});
+        });
+    }
+</script>
 {% endblock %}
 
 {% block extra_css %}

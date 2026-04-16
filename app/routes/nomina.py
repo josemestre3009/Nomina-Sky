@@ -59,3 +59,67 @@ def generar():
                                fecha_fin=ff)
 
     return render_template('admin/nomina/generar.html', empleados=empleados)
+
+
+@nomina_bp.route('/api/ajuste', methods=['POST'])
+@login_required
+def api_agregar_ajuste():
+    """API: Agrega un adicional o descuento (Bono) a una nómina en curso."""
+    from app.extensions import db, csrf
+    from app.models.empleado import Empleado
+    from app.models.bono import Bono
+    from app.services import audit_service
+    from flask_login import current_user
+    from flask import jsonify
+    from datetime import datetime
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No se enviaron datos.'}), 400
+        
+    empleado_id = data.get('empleado_id')
+    valor = data.get('valor')
+    descripcion = str(data.get('descripcion', '')).strip()
+    fecha_fin_str = data.get('fecha_fin')
+    
+    if not all([empleado_id, valor, descripcion, fecha_fin_str]):
+        return jsonify({'error': 'Faltan campos obligatorios.'}), 400
+        
+    try:
+        valor = float(valor)
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Valor o fecha con formato inválido.'}), 400
+        
+    empleado = db.session.get(Empleado, empleado_id)
+    if not empleado:
+        return jsonify({'error': 'Empleado no encontrado.'}), 404
+        
+    # Creamos un bono asociado exclusivamente a la fecha_fin de la nómina
+    nuevo_ajuste = Bono(
+        empleado_id=empleado.id,
+        valor=valor,
+        descripcion=descripcion,
+        fecha_inicio=fecha_fin,  # Esto hace que aplique al mes correspondiente
+        fecha_fin=fecha_fin
+    )
+    
+    db.session.add(nuevo_ajuste)
+    
+    tipo_ajuste = "Adicional" if valor >= 0 else "Descuento"
+    audit_service.registrar(
+        entidad='bono',
+        entidad_id=None,
+        accion='crear',
+        descripcion=f'{tipo_ajuste} desde Nómina: {empleado.nombre} - {descripcion}',
+        valores_nuevos={'valor': valor, 'fecha': fecha_fin_str},
+        usuario=current_user.username
+    )
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'{tipo_ajuste} guardado correctamente.',
+        'ajuste_id': nuevo_ajuste.id
+    })

@@ -160,19 +160,13 @@
 
 <!-- Quick Actions -->
 <div class="row g-3">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <a href="{{ url_for('admin.empleados_crear') }}" class="quick-action-card">
             <i class="bi bi-person-plus-fill"></i>
             <span>Nuevo Empleado</span>
         </a>
     </div>
-    <div class="col-md-4">
-        <a href="{{ url_for('admin.bonos_crear') }}" class="quick-action-card">
-            <i class="bi bi-gift-fill"></i>
-            <span>Asignar Bono</span>
-        </a>
-    </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <a href="{{ url_for('nomina.generar') }}" class="quick-action-card">
             <i class="bi bi-calculator-fill"></i>
             <span>Generar Nómina</span>

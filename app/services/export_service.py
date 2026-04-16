@@ -130,9 +130,9 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
 
         elements.append(Spacer(1, 10))
 
-        # Bonos
+        # Bonos y Ajustes
         if resumen['bonos']:
-            elements.append(Paragraph('<b>Bonos:</b>', info_style))
+            elements.append(Paragraph('<b>Adicionales / Descuentos:</b>', info_style))
             for bono in resumen['bonos']:
                 elements.append(Paragraph(
                     f'  • {bono.descripcion}: ${bono.valor:,.0f} COP',
@@ -250,10 +250,10 @@ def generar_excel(resumenes, fecha_inicio, fecha_fin):
 
         row += 1
 
-        # Bonos
+        # Bonos y Ajustes
         if resumen['bonos']:
             for bono in resumen['bonos']:
-                ws.cell(row=row, column=1, value=f'Bono: {bono.descripcion}').font = bono_font
+                ws.cell(row=row, column=1, value=f'Ajuste: {bono.descripcion}').font = bono_font
                 ws.cell(row=row, column=2, value=f'${bono.valor:,.0f} COP').font = bono_font
                 row += 1
             row += 1

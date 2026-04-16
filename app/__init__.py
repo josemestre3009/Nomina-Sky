@@ -153,8 +153,7 @@ def _register_security_headers(app):
     def set_security_headers(response):
         nonce = getattr(g, 'csp_nonce', '')
 
-        # Prevenir clickjacking
-        response.headers['X-Frame-Options'] = 'DENY'
+        # (X-Frame-Options y frame-ancestors eliminados para compatibilidad con visores de IDE)
         # Prevenir MIME sniffing
         response.headers['X-Content-Type-Options'] = 'nosniff'
         # Prevenir XSS reflejado (navegadores antiguos)
@@ -179,7 +178,6 @@ def _register_security_headers(app):
             "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "img-src 'self' data:; "
             "connect-src 'self' https://cdn.jsdelivr.net; "
-            "frame-ancestors 'none'; "
             "form-action 'self'; "
             "base-uri 'self';"
         )
