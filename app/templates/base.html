@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Actividades Sky — Sistema de Gestión de Nómina y Reporte Diario">
+    <meta name="description" content="Actividades Sky — Sistema de Gestión de Actividades y Reporte Diario">
     <title>{% block title %}Actividades Sky{% endblock %}</title>
 
     <!-- Bootstrap 5 -->
@@ -63,12 +63,12 @@
                 </li>
 
 
-                <li class="nav-section-title">NÓMINA</li>
+                <li class="nav-section-title">ACTIVIDADES</li>
                 <li>
                     <a href="{{ url_for('nomina.generar') }}"
                         class="{% if request.endpoint and 'nomina' in request.endpoint %}active{% endif %}">
                         <i class="bi bi-calculator-fill"></i>
-                        <span>Generar Nómina</span>
+                        <span>Resumen Actividades</span>
                     </a>
                 </li>
 

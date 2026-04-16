@@ -72,7 +72,7 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
     elements = []
 
     # Encabezado
-    elements.append(Paragraph('RESUMEN DE NÓMINA', titulo_style))
+    elements.append(Paragraph('RESUMEN DE ACTIVIDADES', titulo_style))
     elements.append(Paragraph(
         f'Período: {fecha_inicio.strftime("%d/%m/%Y")} — {fecha_fin.strftime("%d/%m/%Y")}',
         subtitulo_style
@@ -172,7 +172,7 @@ def generar_excel(resumenes, fecha_inicio, fecha_fin):
     buffer = io.BytesIO()
     wb = Workbook()
     ws = wb.active
-    ws.title = 'Resumen Nómina'
+    ws.title = 'Resumen Actividades'
 
     # Estilos
     titulo_font = Font(name='Calibri', size=16, bold=True, color='1A237E')
@@ -192,7 +192,7 @@ def generar_excel(resumenes, fecha_inicio, fecha_fin):
 
     # Título
     ws.merge_cells('A1:C1')
-    ws['A1'] = 'RESUMEN DE NÓMINA'
+    ws['A1'] = 'RESUMEN DE ACTIVIDADES'
     ws['A1'].font = titulo_font
     ws['A1'].alignment = center
 

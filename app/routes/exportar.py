@@ -27,7 +27,11 @@ def pdf():
 
     buffer = export_service.generar_pdf(resumenes, fecha_inicio, fecha_fin)
 
-    nombre_archivo = f'nomina_{fecha_inicio.strftime("%Y%m%d")}_{fecha_fin.strftime("%Y%m%d")}.pdf'
+    if len(resumenes) == 1:
+        nombre = resumenes[0]['empleado'].nombre
+        nombre_archivo = f'{nombre} - {fecha_inicio.strftime("%d-%m-%Y")} al {fecha_fin.strftime("%d-%m-%Y")}.pdf'
+    else:
+        nombre_archivo = f'Multiples_Empleados - {fecha_inicio.strftime("%d-%m-%Y")} al {fecha_fin.strftime("%d-%m-%Y")}.pdf'
     return send_file(
         buffer,
         mimetype='application/pdf',
@@ -53,7 +57,11 @@ def excel():
 
     buffer = export_service.generar_excel(resumenes, fecha_inicio, fecha_fin)
 
-    nombre_archivo = f'nomina_{fecha_inicio.strftime("%Y%m%d")}_{fecha_fin.strftime("%Y%m%d")}.xlsx'
+    if len(resumenes) == 1:
+        nombre = resumenes[0]['empleado'].nombre
+        nombre_archivo = f'{nombre} - {fecha_inicio.strftime("%d-%m-%Y")} al {fecha_fin.strftime("%d-%m-%Y")}.xlsx'
+    else:
+        nombre_archivo = f'Multiples_Empleados - {fecha_inicio.strftime("%d-%m-%Y")} al {fecha_fin.strftime("%d-%m-%Y")}.xlsx'
     return send_file(
         buffer,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -69,7 +77,7 @@ def _obtener_parametros_sesion():
     fecha_fin_str = session.get('nomina_fecha_fin')
 
     if not all([empleado_ids, fecha_inicio_str, fecha_fin_str]):
-        flash('❌ Primero debe generar un resumen de nómina.', 'danger')
+        flash('❌ Primero debe generar un resumen de actividades.', 'danger')
         return None
 
     try:

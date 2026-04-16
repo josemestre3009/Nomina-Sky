@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Resumen de Nómina — Actividades Sky{% endblock %}
-{% block page_heading %}Resumen de Nómina{% endblock %}
+{% block title %}Resumen de Actividades — Actividades Sky{% endblock %}
+{% block page_heading %}Resumen de Actividades{% endblock %}
 
 {% block content %}
 <!-- Header con acciones -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold mb-1">Resumen de Nómina</h4>
+        <h4 class="fw-bold mb-1">Resumen de Actividades</h4>
         <p class="text-muted mb-0">
             Período: {{ fecha_inicio|fecha }} — {{ fecha_fin|fecha }}
         </p>
@@ -83,7 +83,15 @@
             {% for bono in resumen.bonos %}
             <div class="d-flex justify-content-between align-items-center py-1">
                 <span>{{ bono.descripcion }}</span>
-                <span class="fw-bold {% if bono.valor >= 0 %}text-success{% else %}text-danger{% endif %}">{{ bono.valor|moneda }}</span>
+                <div>
+                    <span class="fw-bold {% if bono.valor >= 0 %}text-success{% else %}text-danger{% endif %} me-2">{{ bono.valor|moneda }}</span>
+                    <button class="btn btn-sm btn-link text-secondary p-0 me-1 d-print-none" onclick="abrirModalAjuste({{ resumen.empleado.id }}, '{{ resumen.empleado.nombre }}', {{ bono.id }}, '{{ bono.descripcion|escape }}', {{ bono.valor }})" title="Editar">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button class="btn btn-sm btn-link text-danger p-0 d-print-none" onclick="eliminarAjuste({{ bono.id }})" title="Eliminar">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -143,6 +151,7 @@
                 <p class="mb-3 text-muted">Ajuste para: <strong id="ajusteEmpNombre"></strong></p>
                 <form id="formAjuste">
                     <input type="hidden" id="ajusteEmpId">
+                    <input type="hidden" id="ajusteAjusteId">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Motivo</label>
                         <input type="text" class="form-control" id="ajusteMotivo" required placeholder="Ej: Horas extras, Préstamo...">
@@ -178,16 +187,46 @@
         modalAjuste = new bootstrap.Modal(document.getElementById('modalAjuste'));
     });
 
-    function abrirModalAjuste(empId, empNombre) {
+    function abrirModalAjuste(empId, empNombre, ajusteId = null, motivo = '', valor = '') {
         document.getElementById('ajusteEmpId').value = empId;
         document.getElementById('ajusteEmpNombre').textContent = empNombre;
-        document.getElementById('ajusteMotivo').value = '';
-        document.getElementById('ajusteValor').value = '';
+        document.getElementById('ajusteAjusteId').value = ajusteId || '';
+        document.getElementById('ajusteMotivo').value = motivo;
+        document.getElementById('ajusteValor').value = valor;
         modalAjuste.show();
+    }
+
+    function recargarNominaSilenciosamente() {
+        var f = document.createElement('form');
+        f.action = "{{ url_for('nomina.generar') }}";
+        f.method = 'POST';
+        f.style.display = 'none';
+        
+        {% for emp_id in session.get('nomina_empleado_ids', []) %}
+        var i = document.createElement('input');
+        i.type = 'hidden'; i.name = 'empleado_ids'; i.value = '{{ emp_id }}';
+        f.appendChild(i);
+        {% endfor %}
+        
+        var fIni = document.createElement('input');
+        fIni.type = 'hidden'; fIni.name = 'fecha_inicio'; fIni.value = '{{ session.get("nomina_fecha_inicio") }}';
+        f.appendChild(fIni);
+        
+        var fFin = document.createElement('input');
+        fFin.type = 'hidden'; fFin.name = 'fecha_fin'; fFin.value = '{{ session.get("nomina_fecha_fin") }}';
+        f.appendChild(fFin);
+        
+        var csrf = document.createElement('input');
+        csrf.type = 'hidden'; csrf.name = 'csrf_token'; csrf.value = '{{ csrf_token() }}';
+        f.appendChild(csrf);
+
+        document.body.appendChild(f);
+        f.submit();
     }
 
     function guardarAjuste() {
         var empId = document.getElementById('ajusteEmpId').value;
+        var ajusteId = document.getElementById('ajusteAjusteId').value;
         var motivo = document.getElementById('ajusteMotivo').value.trim();
         var valor = document.getElementById('ajusteValor').value;
 
@@ -203,7 +242,9 @@
             fecha_fin: fechaFinNomina
         };
 
-        fetch("{{ url_for('nomina.api_agregar_ajuste') }}", {
+        var url = ajusteId ? "{{ url_for('nomina.api_editar_ajuste', ajuste_id=0) }}".replace('0', ajusteId) : "{{ url_for('nomina.api_agregar_ajuste') }}";
+
+        fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -221,39 +262,51 @@
                     text: res.message,
                     timer: 1500,
                     showConfirmButton: false
-                }).then(() => {
-                    // Refrescar enviando los mismos datos desde la sesión para evitar confirmación del navegador
-                    var f = document.createElement('form');
-                    f.action = "{{ url_for('nomina.generar') }}";
-                    f.method = 'POST';
-                    f.style.display = 'none';
-                    
-                    {% for emp_id in session.get('nomina_empleado_ids', []) %}
-                    var i = document.createElement('input');
-                    i.type = 'hidden'; i.name = 'empleado_ids'; i.value = '{{ emp_id }}';
-                    f.appendChild(i);
-                    {% endfor %}
-                    
-                    var fIni = document.createElement('input');
-                    fIni.type = 'hidden'; fIni.name = 'fecha_inicio'; fIni.value = '{{ session.get("nomina_fecha_inicio") }}';
-                    f.appendChild(fIni);
-                    
-                    var fFin = document.createElement('input');
-                    fFin.type = 'hidden'; fFin.name = 'fecha_fin'; fFin.value = '{{ session.get("nomina_fecha_fin") }}';
-                    f.appendChild(fFin);
-                    
-                    var csrf = document.createElement('input');
-                    csrf.type = 'hidden'; csrf.name = 'csrf_token'; csrf.value = '{{ csrf_token() }}';
-                    f.appendChild(csrf);
-
-                    document.body.appendChild(f);
-                    f.submit();
-                });
+                }).then(() => recargarNominaSilenciosamente());
             } else {
                 Swal.fire({icon: 'error', title: 'Error', text: res.error});
             }
         }).catch(e => {
             Swal.fire({icon: 'error', title: 'Error', text: 'Problema de conexión con el servidor.'});
+        });
+    }
+
+    function eliminarAjuste(ajusteId) {
+        Swal.fire({
+            title: '¿Eliminar este ajuste?',
+            text: "Esta acción no se puede deshacer y actualizará los totales.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("{{ url_for('nomina.api_eliminar_ajuste', ajuste_id=0) }}".replace('0', ajusteId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if(res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminado',
+                            text: res.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => recargarNominaSilenciosamente());
+                    } else {
+                        Swal.fire({icon: 'error', title: 'Error', text: res.error});
+                    }
+                }).catch(e => {
+                    Swal.fire({icon: 'error', title: 'Error', text: 'Problema de conexión con el servidor.'});
+                });
+            }
         });
     }
 </script>

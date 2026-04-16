@@ -123,3 +123,91 @@ def api_agregar_ajuste():
         'message': f'{tipo_ajuste} guardado correctamente.',
         'ajuste_id': nuevo_ajuste.id
     })
+
+
+@nomina_bp.route('/api/ajuste/editar/<int:ajuste_id>', methods=['POST'])
+@login_required
+def api_editar_ajuste(ajuste_id):
+    """API: Edita un adicional o descuento (Bono) existente."""
+    from app.extensions import db
+    from app.models.bono import Bono
+    from app.services import audit_service
+    from flask_login import current_user
+    from flask import jsonify
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No se enviaron datos.'}), 400
+
+    valor = data.get('valor')
+    descripcion = str(data.get('descripcion', '')).strip()
+
+    if not all([valor is not None, descripcion]):
+        return jsonify({'error': 'Faltan campos obligatorios.'}), 400
+
+    try:
+        valor = float(valor)
+    except ValueError:
+        return jsonify({'error': 'Valor con formato inválido.'}), 400
+
+    ajuste = db.session.get(Bono, ajuste_id)
+    if not ajuste:
+        return jsonify({'error': 'Ajuste no encontrado.'}), 404
+
+    valores_anteriores = {'valor': ajuste.valor, 'descripcion': ajuste.descripcion}
+    
+    ajuste.valor = valor
+    ajuste.descripcion = descripcion
+
+    tipo_ajuste = "Adicional" if valor >= 0 else "Descuento"
+    audit_service.registrar(
+        entidad='bono',
+        entidad_id=ajuste.id,
+        accion='actualizar',
+        descripcion=f'Edición de {tipo_ajuste} desde Nómina: {ajuste.descripcion}',
+        valores_anteriores=valores_anteriores,
+        valores_nuevos={'valor': ajuste.valor, 'descripcion': ajuste.descripcion},
+        usuario=current_user.username
+    )
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Ajuste editado correctamente.'
+    })
+
+
+@nomina_bp.route('/api/ajuste/eliminar/<int:ajuste_id>', methods=['POST', 'DELETE'])
+@login_required
+def api_eliminar_ajuste(ajuste_id):
+    """API: Elimina un adicional o descuento (Bono)."""
+    from app.extensions import db
+    from app.models.bono import Bono
+    from app.services import audit_service
+    from flask_login import current_user
+    from flask import jsonify
+
+    ajuste = db.session.get(Bono, ajuste_id)
+    if not ajuste:
+        return jsonify({'error': 'Ajuste no encontrado.'}), 404
+
+    valores_anteriores = {'valor': ajuste.valor, 'descripcion': ajuste.descripcion}
+    
+    db.session.delete(ajuste)
+    
+    audit_service.registrar(
+        entidad='bono',
+        entidad_id=ajuste_id,
+        accion='eliminar',
+        descripcion=f'Eliminación de Ajuste (Nomina): {ajuste.descripcion}',
+        valores_anteriores=valores_anteriores,
+        usuario=current_user.username
+    )
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Ajuste eliminado correctamente.'
+    })

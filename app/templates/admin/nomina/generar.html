@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Generar Nómina — Actividades Sky{% endblock %}
-{% block page_heading %}Generar Nómina{% endblock %}
+{% block title %}Resumen Actividades — Actividades Sky{% endblock %}
+{% block page_heading %}Resumen Actividades{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="card glass-card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-calculator-fill"></i> Generar Nómina</h5>
+                <h5 class="mb-0"><i class="bi bi-calculator-fill"></i> Generar Resumen</h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('nomina.generar') }}">
@@ -52,7 +52,7 @@
                                     <div class="alert alert-info d-flex align-items-center" role="alert">
                                         <i class="bi bi-info-circle-fill me-2 fs-5"></i>
                                         <div>
-                                            No hay empleados activos para generar nómina.
+                                            No hay empleados activos para generar resumen.
                                         </div>
                                     </div>
                                 </div>
@@ -76,7 +76,7 @@
 
                             <div class="d-grid gap-2 mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="bi bi-calculator-fill"></i> Generar Nómina
+                                    <i class="bi bi-calculator-fill"></i> Generar Resumen
                                 </button>
                             </div>
 
