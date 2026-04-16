@@ -89,6 +89,10 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
         elements.append(Paragraph(f'<b>Cédula:</b> {emp.cedula}', info_style))
         elements.append(Paragraph(f'<b>Cargo:</b> {emp.cargo}', info_style))
         elements.append(Paragraph(
+            f'<b>Días Registrados:</b> {resumen["dias_registrados"]}',
+            info_style
+        ))
+        elements.append(Paragraph(
             f'<b>Días Trabajados:</b> {resumen["dias_trabajados"]}',
             info_style
         ))
@@ -215,6 +219,9 @@ def generar_excel(resumenes, fecha_inicio, fecha_fin):
         row += 1
         ws.cell(row=row, column=1, value='Cargo:').font = Font(bold=True)
         ws.cell(row=row, column=2, value=emp.cargo).font = info_font
+        row += 1
+        ws.cell(row=row, column=1, value='Días Registrados:').font = Font(bold=True)
+        ws.cell(row=row, column=2, value=resumen['dias_registrados']).font = info_font
         row += 1
         ws.cell(row=row, column=1, value='Días Trabajados:').font = Font(bold=True)
         ws.cell(row=row, column=2, value=resumen['dias_trabajados']).font = info_font

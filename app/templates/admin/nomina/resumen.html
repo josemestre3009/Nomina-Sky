@@ -40,7 +40,10 @@
             </small>
         </div>
         <div class="text-end">
-            <span class="badge bg-primary fs-6">{{ resumen.dias_trabajados }} días</span>
+            <div class="d-flex flex-column align-items-end gap-1">
+                <span class="badge bg-secondary" title="Total de días reportados en el sistema (incluyendo ausencias o pendientes)">{{ resumen.dias_registrados }} días registrados</span>
+                <span class="badge bg-primary fs-6" title="Días verificados, laborados y aprobados para pago">{{ resumen.dias_trabajados }} días trabajados</span>
+            </div>
         </div>
     </div>
     <div class="card-body">

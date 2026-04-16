@@ -46,7 +46,8 @@ def generar_resumen(empleado_ids, fecha_inicio, fecha_fin):
 
         # Calcular total por días trabajados (valor_dia_aplicado)
         total_dias = sum(r.valor_dia_aplicado for r in reportes)
-        dias_trabajados = len(reportes)
+        dias_trabajados = sum(1 for r in reportes if r.estado_pago == 'revisado')
+        dias_registrados = len(reportes)
 
         # Obtener bonos aplicables en el rango
         bonos = Bono.query.filter(
@@ -76,6 +77,7 @@ def generar_resumen(empleado_ids, fecha_inicio, fecha_fin):
             'empleado': empleado,
             'reportes': reportes,
             'dias_trabajados': dias_trabajados,
+            'dias_registrados': dias_registrados,
             'bonos': bonos,
             'total_bonos': total_bonos,
             'total_dias': total_dias,         # Solo para el admin
