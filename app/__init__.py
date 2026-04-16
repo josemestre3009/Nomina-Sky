@@ -166,14 +166,19 @@ def _register_security_headers(app):
         # HSTS — solo en producción (requiere HTTPS)
         if is_production:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-        # Content-Security-Policy con nonce por petición (elimina unsafe-inline de scripts)
+        # Content-Security-Policy con nonce por petición
+        # script-src-elem: controla <script> tags (con nonce)
+        # script-src-attr: permite event handlers inline (onclick, onchange, etc.)
+        # connect-src: permite fetch de source maps desde CDN
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
-            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; "
+            f"script-src 'self' 'unsafe-inline' 'nonce-{nonce}' https://cdn.jsdelivr.net; "
+            f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; "
+            "script-src-attr 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "img-src 'self' data:; "
-            "connect-src 'self'; "
+            "connect-src 'self' https://cdn.jsdelivr.net; "
             "frame-ancestors 'none'; "
             "form-action 'self'; "
             "base-uri 'self';"
