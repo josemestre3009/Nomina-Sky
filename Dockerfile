@@ -2,8 +2,8 @@
 FROM python:3.9-slim
 
 # Evitar que Python genere archivos .pyc y permitir logs en tiempo real
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Configurar Zona Horaria (Crucial para que datetime.now() de la nómina no quede en UTC)
 ENV TZ=America/Bogota

@@ -5,6 +5,7 @@ Permite a los empleados reportar actividades sin necesidad de login.
 from datetime import date
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app.models.empleado import Empleado
+from app.models.reporte import ReporteDiario
 from app.services.reporte_service import crear_reporte, ReporteError
 from app.forms.reporte_forms import ReportePublicoForm
 from app.extensions import limiter
@@ -59,10 +60,13 @@ def buscar_empleado(cedula):
     """API para buscar empleado por cédula (AJAX)."""
     empleado = Empleado.query.filter_by(cedula=cedula.strip()).first()
     if empleado and empleado.esta_activo:
+        reportes = ReporteDiario.query.filter_by(empleado_id=empleado.id).all()
+        fechas_reportadas = [r.fecha.strftime('%Y-%m-%d') for r in reportes]
         return jsonify({
             'encontrado': True,
             'nombre': empleado.nombre,
             'cargo': empleado.cargo,
-            'cedula': empleado.cedula
+            'cedula': empleado.cedula,
+            'fechas_reportadas': fechas_reportadas
         })
     return jsonify({'encontrado': False})

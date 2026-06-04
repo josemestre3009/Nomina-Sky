@@ -2,6 +2,22 @@
 {% block title %}Reporte de Actividades — Actividades Sky{% endblock %}
 {% block body_class %}public-page{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    /* Estilos para Flatpickr - resaltar días con reportes existentes en rojo */
+    .flatpickr-day.flatpickr-disabled,
+    .flatpickr-day.flatpickr-disabled:hover {
+        background: #FEE2E2 !important; /* rojo claro */
+        color: #EF4444 !important; /* rojo */
+        border-color: transparent !important;
+        cursor: not-allowed;
+        opacity: 0.85;
+        text-decoration: line-through;
+    }
+</style>
+{% endblock %}
+
 {% block public_content %}
 <div class="public-container">
     <div class="report-card">
@@ -59,7 +75,7 @@
                         <label class="form-label fw-bold">
                             <i class="bi bi-calendar-event"></i> Fecha del Reporte
                         </label>
-                        {{ form.fecha(class="form-control", type="date") }}
+                        {{ form.fecha(class="form-control", type="text", id="fecha-input", placeholder="Seleccione una fecha") }}
                         {% for error in form.fecha.errors %}
                         <div class="invalid-feedback d-block">{{ error }}</div>
                         {% endfor %}
@@ -95,7 +111,11 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 <script nonce="{{ csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function () {
         var cedulaInput = document.getElementById('input-cedula');
@@ -103,6 +123,7 @@
         var campos = document.getElementById('campos-reporte');
         var charCount = document.getElementById('char-count');
         var timeout = null;
+        var fpInstance = null;
 
         // Búsqueda por cédula con debounce
         cedulaInput.addEventListener('input', function () {
@@ -120,15 +141,35 @@
                                 document.getElementById('empleado-cargo').textContent = data.cargo;
                                 infoCard.classList.remove('d-none');
                                 campos.classList.remove('d-none');
+
+                                // Re-inicializar Flatpickr con las fechas deshabilitadas
+                                if (fpInstance) {
+                                    fpInstance.destroy();
+                                }
+                                fpInstance = flatpickr('#fecha-input', {
+                                    locale: 'es',
+                                    dateFormat: 'Y-m-d',
+                                    disable: data.fechas_reportadas || [],
+                                    maxDate: new Date(), // Deshabilitar fechas futuras
+                                    defaultDate: 'today'
+                                });
                             } else {
                                 infoCard.classList.add('d-none');
                                 campos.classList.add('d-none');
+                                if (fpInstance) {
+                                    fpInstance.destroy();
+                                    fpInstance = null;
+                                }
                             }
                         });
                 }, 400);
             } else {
                 infoCard.classList.add('d-none');
                 campos.classList.add('d-none');
+                if (fpInstance) {
+                    fpInstance.destroy();
+                    fpInstance = null;
+                }
             }
         });
 
