@@ -27,7 +27,7 @@
             {% endif %}
             {% endwith %}
 
-            <form method="POST" id="reporte-form" autocomplete="off">
+            <form method="POST" id="reporte-form" autocomplete="off" novalidate>
                 {{ form.hidden_tag() }}
 
                 <!-- Cédula con búsqueda -->
@@ -96,7 +96,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function () {
         var cedulaInput = document.getElementById('input-cedula');
         var infoCard = document.getElementById('empleado-info');
