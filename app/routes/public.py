@@ -2,11 +2,11 @@
 Rutas públicas.
 Permite a los empleados reportar actividades sin necesidad de login.
 """
-from datetime import date
+from datetime import date, datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app.models.empleado import Empleado
 from app.models.reporte import ReporteDiario
-from app.services.reporte_service import crear_reporte, ReporteError
+from app.services.reporte_service import guardar_reporte, ReporteError
 from app.forms.reporte_forms import ReportePublicoForm
 from app.extensions import limiter
 
@@ -25,16 +25,16 @@ def reporte():
 
     if form.validate_on_submit():
         try:
-            reporte = crear_reporte(
+            reporte, actualizado = guardar_reporte(
                 cedula=form.cedula.data.strip(),
                 fecha=form.fecha.data,
                 actividad=form.actividad.data.strip()
             )
-            flash('✅ Reporte enviado exitosamente. ¡Gracias!', 'success')
             return redirect(url_for('public.confirmacion',
                                     nombre=reporte.empleado.nombre,
                                     fecha=reporte.fecha.strftime('%d/%m/%Y'),
-                                    cedula=reporte.empleado.cedula))
+                                    cedula=reporte.empleado.cedula,
+                                    actualizado=1 if actualizado else None))
         except ReporteError as e:
             flash(f'❌ {str(e)}', 'danger')
 
@@ -51,7 +51,9 @@ def confirmacion():
     nombre = request.args.get('nombre', 'Empleado')
     fecha = request.args.get('fecha', '')
     cedula = request.args.get('cedula', '')
-    return render_template('public/confirmacion.html', nombre=nombre, fecha=fecha, cedula=cedula)
+    actualizado = request.args.get('actualizado') == '1'
+    return render_template('public/confirmacion.html', nombre=nombre, fecha=fecha,
+                           cedula=cedula, actualizado=actualizado)
 
 
 @public_bp.route('/buscar-empleado/<cedula>')
@@ -70,3 +72,30 @@ def buscar_empleado(cedula):
             'fechas_reportadas': fechas_reportadas
         })
     return jsonify({'encontrado': False})
+
+
+@public_bp.route('/reporte-existente/<cedula>/<fecha>')
+@limiter.limit('60/minute')
+def reporte_existente(cedula, fecha):
+    """API para recuperar el reporte de un empleado en una fecha (AJAX)."""
+    try:
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'encontrado': False}), 400
+
+    empleado = Empleado.query.filter_by(cedula=cedula.strip()).first()
+    if not empleado or not empleado.esta_activo:
+        return jsonify({'encontrado': False})
+
+    reporte = ReporteDiario.query.filter_by(
+        empleado_id=empleado.id,
+        fecha=fecha_obj
+    ).first()
+    if not reporte:
+        return jsonify({'encontrado': False})
+
+    return jsonify({
+        'encontrado': True,
+        'actividad': reporte.actividad,
+        'fecha': reporte.fecha.strftime('%Y-%m-%d')
+    })

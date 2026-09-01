@@ -15,22 +15,13 @@ class ReporteError(Exception):
     pass
 
 
-def crear_reporte(cedula, fecha, actividad):
+def obtener_empleado_activo(cedula):
     """
-    Crea un reporte diario para un empleado.
-
-    Args:
-        cedula: Cédula del empleado
-        fecha: Fecha del reporte
-        actividad: Descripción de la actividad
-
-    Returns:
-        ReporteDiario creado
+    Busca un empleado activo por cédula.
 
     Raises:
-        ReporteError: Si hay error de validación o duplicado
+        ReporteError: Si no existe o está inactivo
     """
-    # Buscar empleado por cédula
     empleado = Empleado.query.filter_by(cedula=cedula).first()
     if not empleado:
         raise ReporteError('No se encontró un empleado con esa cédula.')
@@ -38,13 +29,50 @@ def crear_reporte(cedula, fecha, actividad):
     if not empleado.esta_activo:
         raise ReporteError('El empleado no está activo en el sistema.')
 
-    # Verificar que no exista reporte del mismo día
+    return empleado
+
+
+def guardar_reporte(cedula, fecha, actividad):
+    """
+    Crea el reporte diario de un empleado, o actualiza la actividad
+    si ya existe uno para esa fecha.
+
+    Args:
+        cedula: Cédula del empleado
+        fecha: Fecha del reporte
+        actividad: Descripción de la actividad
+
+    Returns:
+        Tupla (ReporteDiario, actualizado) donde `actualizado` es True
+        cuando se editó un reporte existente.
+
+    Raises:
+        ReporteError: Si hay error de validación
+    """
+    empleado = obtener_empleado_activo(cedula)
+
     existente = ReporteDiario.query.filter_by(
         empleado_id=empleado.id,
         fecha=fecha
     ).first()
+
     if existente:
-        raise ReporteError(f'Ya existe un reporte para el {fecha.strftime("%d/%m/%Y")}.')
+        actividad_anterior = existente.actividad
+        if actividad_anterior == actividad:
+            return existente, True
+
+        existente.actividad = actividad
+        audit_service.registrar(
+            entidad='reporte',
+            entidad_id=existente.id,
+            accion='editar',
+            descripcion=f'Reporte editado por empleado {empleado.nombre} para {fecha.strftime("%d/%m/%Y")}',
+            valores_anteriores={'actividad': actividad_anterior[:100]},
+            valores_nuevos={'actividad': actividad[:100]},
+            usuario=f'empleado:{empleado.cedula}'
+        )
+        db.session.commit()
+        return existente, True
 
     # Crear reporte con valor por defecto del empleado
     reporte = ReporteDiario(
@@ -71,10 +99,10 @@ def crear_reporte(cedula, fecha, actividad):
             usuario=f'empleado:{empleado.cedula}'
         )
         db.session.commit()
-        return reporte
+        return reporte, False
     except IntegrityError:
         db.session.rollback()
-        raise ReporteError('Ya existe un reporte para esta fecha.')
+        raise ReporteError('Ya existe un reporte para esta fecha. Recargue la página e intente de nuevo.')
 
 
 def obtener_reportes_filtrados(pagina=1, por_pagina=15, cedula=None, nombre=None,

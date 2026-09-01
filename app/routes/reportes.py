@@ -23,12 +23,10 @@ def lista():
     mes = request.args.get('mes', type=int, default=date.today().month)
     anio = request.args.get('anio', type=int, default=date.today().year)
 
+    # Sin empleado_id se muestra la vista masiva (Todos los Empleados)
     empleado_actual = None
     if empleado_id:
         empleado_actual = db.session.get(Empleado, empleado_id)
-    elif empleados:
-        empleado_actual = empleados[0]
-        empleado_id = empleado_actual.id
 
     return render_template('admin/reportes/calendario.html',
                            empleados=empleados,

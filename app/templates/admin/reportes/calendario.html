@@ -12,7 +12,9 @@
                     <div class="col-md-5">
                         <label class="form-label fw-bold">Empleado</label>
                         <select id="empleado-select" class="form-select">
-                            <option value="todos">Todos los Empleados (Masivo)</option>
+                            <option value="todos" {% if not empleado_actual %}selected{% endif %}>
+                                Todos los Empleados (Masivo)
+                            </option>
                             {% for emp in empleados %}
                             <option value="{{ emp.id }}" data-valor="{{ emp.valor_dia_defecto }}" {% if empleado_actual
                                 and emp.id==empleado_actual.id %}selected{% endif %}>
@@ -329,19 +331,20 @@
     var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+    // El resumen mensual solo aplica a un empleado concreto, no a la vista masiva
+    function actualizarVisibilidadResumen() {
+        document.getElementById('resumen-mes-card').style.display =
+            (empleadoId === 'todos') ? 'none' : 'block';
+    }
+
+    actualizarVisibilidadResumen();
     cargarReportes();
 
     document.getElementById('empleado-select').addEventListener('change', function () {
         empleadoId = this.value;
         diaSeleccionado = null;
         limpiarDetalle();
-
-        if (empleadoId === 'todos') {
-            document.getElementById('resumen-mes-card').style.display = 'none';
-        } else {
-            document.getElementById('resumen-mes-card').style.display = 'block';
-        }
-
+        actualizarVisibilidadResumen();
         cargarReportes();
     });
 
