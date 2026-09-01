@@ -6,7 +6,9 @@ from datetime import date, datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app.models.empleado import Empleado
 from app.models.reporte import ReporteDiario
-from app.services.reporte_service import guardar_reporte, ReporteError
+from app.services.reporte_service import (
+    guardar_reporte, es_editable_por_empleado, ReporteError
+)
 from app.forms.reporte_forms import ReportePublicoForm
 from app.extensions import limiter
 
@@ -63,13 +65,21 @@ def buscar_empleado(cedula):
     empleado = Empleado.query.filter_by(cedula=cedula.strip()).first()
     if empleado and empleado.esta_activo:
         reportes = ReporteDiario.query.filter_by(empleado_id=empleado.id).all()
-        fechas_reportadas = [r.fecha.strftime('%Y-%m-%d') for r in reportes]
+        editables, bloqueadas = [], []
+        for r in reportes:
+            fecha_str = r.fecha.strftime('%Y-%m-%d')
+            if es_editable_por_empleado(r):
+                editables.append(fecha_str)
+            else:
+                bloqueadas.append(fecha_str)
         return jsonify({
             'encontrado': True,
             'nombre': empleado.nombre,
             'cargo': empleado.cargo,
             'cedula': empleado.cedula,
-            'fechas_reportadas': fechas_reportadas
+            'fechas_reportadas': editables + bloqueadas,
+            'fechas_editables': editables,
+            'fechas_bloqueadas': bloqueadas
         })
     return jsonify({'encontrado': False})
 
@@ -97,5 +107,6 @@ def reporte_existente(cedula, fecha):
     return jsonify({
         'encontrado': True,
         'actividad': reporte.actividad,
-        'fecha': reporte.fecha.strftime('%Y-%m-%d')
+        'fecha': reporte.fecha.strftime('%Y-%m-%d'),
+        'editable': es_editable_por_empleado(reporte)
     })

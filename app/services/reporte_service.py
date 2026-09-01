@@ -15,6 +15,17 @@ class ReporteError(Exception):
     pass
 
 
+# El empleado solo puede modificar sus reportes mientras el administrador
+# no los haya procesado. Un reporte 'revisado' ya cuenta como día trabajado
+# en la nómina, y uno 'ausente' lo marcó el administrador: ninguno se toca.
+ESTADOS_EDITABLES_POR_EMPLEADO = ('pendiente',)
+
+
+def es_editable_por_empleado(reporte):
+    """Indica si el empleado aún puede modificar el reporte."""
+    return reporte.estado_pago in ESTADOS_EDITABLES_POR_EMPLEADO
+
+
 def obtener_empleado_activo(cedula):
     """
     Busca un empleado activo por cédula.
@@ -57,6 +68,12 @@ def guardar_reporte(cedula, fecha, actividad):
     ).first()
 
     if existente:
+        if not es_editable_por_empleado(existente):
+            raise ReporteError(
+                f'El reporte del {fecha.strftime("%d/%m/%Y")} ya fue procesado por el '
+                'administrador y no se puede modificar.'
+            )
+
         actividad_anterior = existente.actividad
         if actividad_anterior == actividad:
             return existente, True

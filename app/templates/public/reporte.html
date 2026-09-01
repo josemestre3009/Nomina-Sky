@@ -21,6 +21,16 @@
         border-color: #059669;
     }
 
+    /* Días ya procesados por el administrador: bloqueados */
+    .flatpickr-day.flatpickr-disabled.dia-bloqueado,
+    .flatpickr-day.flatpickr-disabled.dia-bloqueado:hover {
+        background: #F3F4F6 !important;
+        color: #9CA3AF !important;
+        border-color: transparent !important;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+
     /* Aviso de edición de un reporte existente */
     #aviso-edicion {
         background: #D1FAE5;
@@ -93,7 +103,9 @@
                         {{ form.fecha(class="form-control", type="text", id="fecha-input", placeholder="Seleccione una fecha") }}
                         <small class="form-text d-block mt-1">
                             Los días en <span style="color:#059669;font-weight:600;">verde</span> ya tienen
-                            reporte: puede seleccionarlos para editarlos.
+                            reporte: puede seleccionarlos para editarlos. Los días
+                            <span style="color:#9CA3AF;font-weight:600;text-decoration:line-through;">grises</span>
+                            ya fueron procesados por el administrador y no se pueden modificar.
                         </small>
                         {% for error in form.fecha.errors %}
                         <div class="invalid-feedback d-block">{{ error }}</div>
@@ -152,7 +164,8 @@
         var actividadInput = document.querySelector('textarea[name="actividad"]');
         var timeout = null;
         var fpInstance = null;
-        var fechasReportadas = [];
+        var fechasEditables = [];
+        var fechasBloqueadas = [];
         var enEdicion = false;
 
         function actualizarContador() {
@@ -175,7 +188,7 @@
         function alCambiarFecha(fechaStr) {
             var cedula = cedulaInput.value.replace(/\D/g, '');
 
-            if (fechasReportadas.indexOf(fechaStr) === -1) {
+            if (fechasEditables.indexOf(fechaStr) === -1) {
                 // Fecha sin reporte: limpiar solo si veníamos de editar otro día
                 if (enEdicion) {
                     actividadInput.value = '';
@@ -188,7 +201,7 @@
             fetch('/reporte-existente/' + cedula + '/' + fechaStr)
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (data.encontrado) {
+                    if (data.encontrado && data.editable) {
                         actividadInput.value = data.actividad;
                         actualizarContador();
                         modoEdicion();
@@ -206,15 +219,19 @@
                 locale: 'es',
                 dateFormat: 'Y-m-d',
                 maxDate: new Date(), // Deshabilitar fechas futuras
+                disable: fechasBloqueadas,
                 defaultDate: fechaSeleccionada || 'today',
                 onDayCreate: function (dObj, dStr, fp, dayElem) {
                     var d = dayElem.dateObj;
                     var iso = d.getFullYear() + '-' +
                         String(d.getMonth() + 1).padStart(2, '0') + '-' +
                         String(d.getDate()).padStart(2, '0');
-                    if (fechasReportadas.indexOf(iso) !== -1) {
+                    if (fechasEditables.indexOf(iso) !== -1) {
                         dayElem.classList.add('dia-reportado');
                         dayElem.title = 'Ya tiene reporte — clic para editarlo';
+                    } else if (fechasBloqueadas.indexOf(iso) !== -1) {
+                        dayElem.classList.add('dia-bloqueado');
+                        dayElem.title = 'Reporte ya procesado por el administrador — no se puede modificar';
                     }
                 },
                 onChange: function (selectedDates, dateStr) {
@@ -240,12 +257,13 @@
                                 infoCard.classList.remove('d-none');
                                 campos.classList.remove('d-none');
 
-                                fechasReportadas = data.fechas_reportadas || [];
+                                fechasEditables = data.fechas_editables || [];
+                                fechasBloqueadas = data.fechas_bloqueadas || [];
                                 var fechaActual = fechaInput.value;
                                 iniciarCalendario(fechaActual || null);
 
                                 // onChange no se dispara con defaultDate: evaluar el estado inicial
-                                if (fechaActual && fechasReportadas.indexOf(fechaActual) !== -1) {
+                                if (fechaActual && fechasEditables.indexOf(fechaActual) !== -1) {
                                     if (actividadInput.value.trim()) {
                                         // El usuario ya escribió (p. ej. tras un error de validación)
                                         modoEdicion();
@@ -258,7 +276,8 @@
                             } else {
                                 infoCard.classList.add('d-none');
                                 campos.classList.add('d-none');
-                                fechasReportadas = [];
+                                fechasEditables = [];
+                                fechasBloqueadas = [];
                                 modoNuevo();
                                 if (fpInstance) {
                                     fpInstance.destroy();
@@ -270,7 +289,8 @@
             } else {
                 infoCard.classList.add('d-none');
                 campos.classList.add('d-none');
-                fechasReportadas = [];
+                fechasEditables = [];
+                fechasBloqueadas = [];
                 modoNuevo();
                 if (fpInstance) {
                     fpInstance.destroy();
