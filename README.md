@@ -21,7 +21,18 @@ Aplicación web profesional desarrollada en Python con Flask para gestionar repo
 - Python 3.9 o superior
 - pip (gestor de paquetes de Python)
 
-## ⚡ Instalación Rápida
+## 🐳 Despliegue con Docker Compose
+
+Levanta PostgreSQL y la aplicación Flask listos con migraciones y datos iniciales:
+
+```bash
+docker compose up --build -d
+```
+
+- **Web**: http://localhost:5000 (o puerto configurable con `PORT`)
+- **PostgreSQL**: `localhost:5432` (db: `nomina_sky`, user: `nomina_user`, pass: `nomina_pass`)
+
+## ⚡ Instalación Rápida (Local sin Docker)
 
 ### 1. Clonar o descargar el proyecto
 
