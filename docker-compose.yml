@@ -1,14 +1,11 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: nomina_sky_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nomina_sky}
       POSTGRES_USER: ${POSTGRES_USER:-nomina_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nomina_pass}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +16,6 @@ services:
 
   web:
     build: .
-    container_name: nomina_sky_web
     restart: unless-stopped
     ports:
       - "${PORT:-5000}:8000"
