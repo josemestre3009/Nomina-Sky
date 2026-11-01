@@ -4,6 +4,7 @@ Genera archivos PDF y Excel con resúmenes de nómina detallados (incluyendo val
 """
 import io
 from datetime import datetime
+from xml.sax.saxutils import escape
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -12,6 +13,11 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+
+def _texto_pdf(valor):
+    """Convierte texto de usuario en contenido literal seguro para Paragraph."""
+    return escape(str(valor or '')).replace('\n', '<br/>')
 
 
 def generar_pdf(resumenes, fecha_inicio, fecha_fin):
@@ -85,9 +91,9 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
         # Datos del empleado
         elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#1a237e')))
         elements.append(Spacer(1, 8))
-        elements.append(Paragraph(f'<b>Empleado:</b> {emp.nombre}', info_style))
-        elements.append(Paragraph(f'<b>Cédula:</b> {emp.cedula}', info_style))
-        elements.append(Paragraph(f'<b>Cargo:</b> {emp.cargo}', info_style))
+        elements.append(Paragraph(f'<b>Empleado:</b> {_texto_pdf(emp.nombre)}', info_style))
+        elements.append(Paragraph(f'<b>Cédula:</b> {_texto_pdf(emp.cedula)}', info_style))
+        elements.append(Paragraph(f'<b>Cargo:</b> {_texto_pdf(emp.cargo)}', info_style))
         elements.append(Paragraph(
             f'<b>Días Registrados:</b> {resumen["dias_registrados"]}',
             info_style
@@ -107,12 +113,12 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
                     texto_act = f"No laboró - {texto_act}"
                 data.append([
                     r.fecha.strftime('%d/%m/%Y'),
-                    Paragraph(texto_act[:200], styles['Normal']),
+                    Paragraph(_texto_pdf(texto_act), styles['Normal']),
                     f'${r.valor_dia_aplicado:,.0f} COP'
                 ])
 
             col_widths = [80, 320, 100]
-            tabla = Table(data, colWidths=col_widths, repeatRows=1)
+            tabla = Table(data, colWidths=col_widths, repeatRows=1, splitInRow=1)
             tabla.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -139,7 +145,7 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
             elements.append(Paragraph('<b>Adicionales / Descuentos:</b>', info_style))
             for bono in resumen['bonos']:
                 elements.append(Paragraph(
-                    f'  • {bono.descripcion}: ${bono.valor:,.0f} COP',
+                    f'  • {_texto_pdf(bono.descripcion)}: ${bono.valor:,.0f} COP',
                     info_style
                 ))
             elements.append(Spacer(1, 6))
