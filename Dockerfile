@@ -23,8 +23,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el resto del código
 COPY . .
 
+# Persistir la base SQLite cuando DATABASE_URL apunta a /app/instance
+RUN mkdir -p /app/instance
+VOLUME ["/app/instance"]
+
 # Exponer el puerto de Flask
 EXPOSE 8000
 
-# Comando para iniciar la aplicación (usando Gunicorn para producción)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "run:app"]
+# Inicializar el esquema y el admin antes de servir la aplicación
+CMD ["sh", "-c", "flask --app run:app init-db && exec gunicorn --bind 0.0.0.0:8000 run:app"]
