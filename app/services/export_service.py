@@ -9,7 +9,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, KeepTogether
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
@@ -66,13 +66,11 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
         fontSize=10,
         spaceAfter=4
     )
-    total_style = ParagraphStyle(
-        'Total',
-        parent=styles['Normal'],
-        fontSize=12,
-        spaceBefore=8,
-        textColor=colors.HexColor('#1b5e20'),
-        alignment=TA_RIGHT
+    resumen_label_style = ParagraphStyle(
+        'ResumenLabel', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#37474f')
+    )
+    resumen_valor_style = ParagraphStyle(
+        'ResumenValor', parent=resumen_label_style, alignment=TA_RIGHT
     )
 
     elements = []
@@ -114,7 +112,7 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
                 data.append([
                     r.fecha.strftime('%d/%m/%Y'),
                     Paragraph(_texto_pdf(texto_act), styles['Normal']),
-                    f'${r.valor_dia_aplicado:,.0f} COP'
+                    f'${r.valor_dia_aplicado:,.0f}'
                 ])
 
             col_widths = [80, 320, 100]
@@ -138,23 +136,54 @@ def generar_pdf(resumenes, fecha_inicio, fecha_fin):
             ]))
             elements.append(tabla)
 
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 12))
 
-        # Bonos y Ajustes
-        if resumen['bonos']:
-            elements.append(Paragraph('<b>Adicionales / Descuentos:</b>', info_style))
-            for bono in resumen['bonos']:
-                elements.append(Paragraph(
-                    f'  • {_texto_pdf(bono.descripcion)}: ${bono.valor:,.0f} COP',
-                    info_style
-                ))
-            elements.append(Spacer(1, 6))
+        # Resumen de pago
+        filas_resumen = [[
+            Paragraph('<b>RESUMEN DE PAGO</b>', resumen_label_style), ''
+        ], [
+            Paragraph('Subtotal trabajado', resumen_label_style),
+            Paragraph(f'<b>${resumen["total_dias"]:,.0f}</b>', resumen_valor_style)
+        ]]
+        colores_ajustes = []
+        for bono in resumen['bonos']:
+            es_adicional = bono.valor >= 0
+            tipo = 'Adicional' if es_adicional else 'Descuento'
+            signo = '+' if es_adicional else '-'
+            color = colors.HexColor('#2e7d32' if es_adicional else '#c62828')
+            fila = len(filas_resumen)
+            filas_resumen.append([
+                Paragraph(f'{tipo}: {_texto_pdf(bono.descripcion)}', resumen_label_style),
+                Paragraph(f'<b>{signo}${abs(bono.valor):,.0f}</b>', resumen_valor_style)
+            ])
+            colores_ajustes.append((fila, color))
 
-        # Total final (SIN desglose por día)
-        elements.append(Paragraph(
-            f'<b>TOTAL A PAGAR: ${resumen["total_final"]:,.0f} COP</b>',
-            total_style
-        ))
+        fila_total = len(filas_resumen)
+        filas_resumen.append([
+            Paragraph('<b>TOTAL A PAGAR</b>', resumen_label_style),
+            Paragraph(f'<b>${resumen["total_final"]:,.0f}</b>', resumen_valor_style)
+        ])
+        tabla_resumen = Table(filas_resumen, colWidths=[320, 180], hAlign='RIGHT')
+        estilo_resumen = [
+            ('SPAN', (0, 0), (-1, 0)),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8eaf6')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
+            ('BACKGROUND', (0, 1), (-1, fila_total - 1), colors.HexColor('#fafafa')),
+            ('BACKGROUND', (0, fila_total), (-1, fila_total), colors.HexColor('#e8f5e9')),
+            ('TEXTCOLOR', (0, fila_total), (-1, fila_total), colors.HexColor('#1b5e20')),
+            ('LINEABOVE', (0, fila_total), (-1, fila_total), 1, colors.HexColor('#81c784')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#c5cae9')),
+            ('INNERGRID', (0, 1), (-1, -2), 0.25, colors.HexColor('#eeeeee')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ]
+        for fila, color in colores_ajustes:
+            estilo_resumen.append(('TEXTCOLOR', (1, fila), (1, fila), color))
+        tabla_resumen.setStyle(TableStyle(estilo_resumen))
+        elements.append(KeepTogether([tabla_resumen]))
         elements.append(Spacer(1, 20))
 
     # Pie de página con fecha de generación

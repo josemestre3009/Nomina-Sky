@@ -25,7 +25,11 @@ class GenerarPdfTest(unittest.TestCase):
             'dias_registrados': len(reportes),
             'dias_trabajados': len(reportes),
             'reportes': reportes,
-            'bonos': [SimpleNamespace(descripcion='Extra <urgente> & nocturno', valor=50000)],
+            'bonos': [
+                SimpleNamespace(descripcion='Extra <urgente> & nocturno', valor=75000),
+                SimpleNamespace(descripcion='Anticipo', valor=-25000),
+            ],
+            'total_dias': 10000000,
             'total_final': 10050000,
         }
         textos = []
@@ -44,6 +48,12 @@ class GenerarPdfTest(unittest.TestCase):
         self.assertIn(actividad_escapada, textos)
         self.assertIn('FIN-REPORTE', actividad_escapada)
         self.assertIn('&lt;principal&gt; &amp; revisión', actividad_escapada)
+        self.assertIn('Subtotal trabajado', textos)
+        self.assertIn('<b>$10,000,000</b>', textos)
+        self.assertIn('<b>+$75,000</b>', textos)
+        self.assertIn('<b>-$25,000</b>', textos)
+        self.assertIn('<b>$10,050,000</b>', textos)
+        self.assertFalse(any('COP' in texto for texto in textos))
         self.assertGreater(len(re.findall(rb'/Type\s*/Page\b', contenido)), 1)
 
     def test_divide_una_actividad_mayor_que_una_pagina(self):
@@ -59,6 +69,7 @@ class GenerarPdfTest(unittest.TestCase):
                 valor_dia_aplicado=100000,
             )],
             'bonos': [],
+            'total_dias': 100000,
             'total_final': 100000,
         }
 
